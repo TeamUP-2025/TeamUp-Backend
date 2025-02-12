@@ -49,17 +49,10 @@ func (h *AuthHandler) HandleGithubCallback(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	access_token, err := h.githubSerice.ExchangeCodeForToken(code)
-
-	if err != nil {
-		return
-	}
-
-	fmt.Println(access_token)
-
-	token, err := h.config.Exchange(r.Context(), access_token.AccessToken)
+	token, err := h.config.Exchange(r.Context(), code)
 	if err != nil {
 		http.Error(w, "Failed to exchange token", http.StatusInternalServerError)
+		fmt.Println(err)
 		return
 	}
 
