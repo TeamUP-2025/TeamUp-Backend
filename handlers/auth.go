@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -68,7 +67,15 @@ func (h *AuthHandler) HandleGithubCallback(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{
-		"token": tokenString,
+	http.SetCookie(w, &http.Cookie{
+		Name:     "token",
+		Value:    tokenString,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true, // ensure HTTPS in production
+		SameSite: http.SameSiteNoneMode,
+		Expires:  time.Now().Add(1 * time.Hour), // same duration as JWT expiration
 	})
+
+	http.Redirect(w, r, "http://localhost:3000", http.StatusSeeOther)
 }
