@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/TeamUP-2025/TeamUp-Backend/services"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 )
