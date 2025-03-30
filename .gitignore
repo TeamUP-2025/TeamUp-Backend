@@ -1,3 +1,5 @@
 .env
 tmp
 TeamUp-Backend
+chat/node_modules/*
+chat/dist
