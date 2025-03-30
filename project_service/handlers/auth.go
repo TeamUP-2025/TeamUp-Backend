@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/TeamUP-2025/TeamUp-Backend/services"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 )
@@ -58,6 +58,7 @@ func (h *AuthHandler) HandleGithubCallback(w http.ResponseWriter, r *http.Reques
 	// Create JWT token
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"access_token": token.AccessToken,
+		"name":         "Test Reo",
 		"exp":          time.Now().Add(time.Hour * 24).Unix(),
 	})
 
@@ -74,7 +75,7 @@ func (h *AuthHandler) HandleGithubCallback(w http.ResponseWriter, r *http.Reques
 		HttpOnly: true,
 		Secure:   true, // ensure HTTPS in production
 		SameSite: http.SameSiteNoneMode,
-		Expires:  time.Now().Add(1 * time.Hour), // same duration as JWT expiration
+		Expires:  time.Now().Add(time.Hour * 24), // same duration as JWT expiration
 	})
 
 	http.Redirect(w, r, "http://localhost:3000", http.StatusSeeOther)

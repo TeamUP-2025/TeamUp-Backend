@@ -22,6 +22,6 @@ func LoadConfig() *Config {
 	return &Config{
 		GithubClientID:     os.Getenv("GithubClientID"),
 		GithubClientSecret: os.Getenv("GithubClientSecret"),
-		JWTSecret:          "test",
+		JWTSecret:          os.Getenv(("JWT_SECRET")),
 	}
 }
