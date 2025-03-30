@@ -1,13 +1,17 @@
 import { Server } from "socket.io";
 import jwt from 'jsonwebtoken';
 import * as cookie from 'cookie';
+import { createServer } from "http";
+import express from "express";
+
 
 // import { PrismaClient } from '@prisma/client';
 
 // const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'test'; // Use the same secret as in your auth system
-
-const io = new Server({ 
+const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, { 
     cors: {
         origin: ["http://localhost:3000", "192.168.1.50:3000"], // Adjust according to your frontend URL
         methods: ["GET", "POST"],
@@ -106,4 +110,4 @@ io.on("connection", async (socket) => {
     });
 });
 
-io.listen(3001);
+httpServer.listen(3001);
