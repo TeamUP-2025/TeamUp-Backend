@@ -60,6 +60,8 @@ type Repo struct {
 	Description *string
 	Star        *int32
 	Fork        *int32
+	LastUpdated pgtype.Timestamptz
+	Language    *string
 }
 
 type Roadmap struct {
@@ -81,12 +83,19 @@ type Teammember struct {
 }
 
 type User struct {
-	Uid      pgtype.UUID
-	Login    string
-	Name     string
-	Avatar   *string
-	Location *string
-	Token    string
+	Uid               pgtype.UUID
+	Login             string
+	Name              string
+	Avatar            *string
+	Location          *string
+	Token             string
+	Bio               *string
+	Followers         *int32
+	Following         *int32
+	PublicRepos       *int32
+	TotalPrivateRepos *int32
+	HtmlUrl           *string
+	LastUpdated       pgtype.Timestamptz
 }
 
 type UserTag struct {

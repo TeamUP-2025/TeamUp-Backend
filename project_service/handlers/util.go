@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/TeamUP-2025/TeamUp-Backend/db"
-
 )
 
 // respondInternalServerError writes an internal server error JSON response.

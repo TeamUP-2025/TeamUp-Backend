@@ -70,14 +70,39 @@ func (h *AuthHandler) HandleGithubCallback(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	followers := int32(0)
+    if user.Followers != nil {
+        followers = int32(*user.Followers)
+    }
+
+    following := int32(0)
+    if user.Following != nil {
+        following = int32(*user.Following)
+    }
+
+    publicRepos := int32(0)
+    if user.PublicRepos != nil {
+        publicRepos = int32(*user.PublicRepos)
+    }
+
+    totalPrivateRepos := int32(0)
+    if user.TotalPrivateRepos != nil {
+        totalPrivateRepos = int32(*user.TotalPrivateRepos)
+    }
 
 	userData := db.UpsertUseAndReturnUidAndNameParams{
-		Login: *user.Login,
-		Name: *user.Name,
-		Avatar:   user.AvatarURL,
-		Location: user.Location,
-		Token: acessToken,
-	}
+        Login:            *user.Login,
+        Name:             *user.Name,
+        Avatar:           user.AvatarURL,
+        Location:         user.Location,
+        Token:            acessToken,
+        Bio:             user.Bio,
+        Followers:       &followers,
+        Following:       &following,
+        PublicRepos:     &publicRepos,
+        TotalPrivateRepos: &totalPrivateRepos,
+        HtmlUrl:         user.HTMLURL,
+    }
 
 	data, err := db.UpsertUserQuery(userData, h.databaseUrl)
 

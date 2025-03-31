@@ -125,3 +125,25 @@ CREATE TABLE "userTag" (
     PRIMARY KEY (uId, tagId)
 );
 -- +goose StatementEnd
+
+ALTER TABLE "user"
+ADD COLUMN bio TEXT,
+ADD COLUMN followers INTEGER DEFAULT 0,
+ADD COLUMN following INTEGER DEFAULT 0,
+ADD COLUMN public_repos INTEGER DEFAULT 0,
+ADD COLUMN total_private_repos INTEGER DEFAULT 0,
+ADD COLUMN html_url VARCHAR;
+
+-- +goose StatementBegin
+ALTER TABLE "user"
+ADD COLUMN last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE "repo"
+ADD COLUMN last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+-- +goose StatementEnd
+
+ALTER TABLE "repo"
+ADD CONSTRAINT unique_user_repo UNIQUE (uid, name);
+
+ALTER TABLE "repo"
+ADD COLUMN language VARCHAR;
