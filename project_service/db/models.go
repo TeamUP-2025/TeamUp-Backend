@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.28.0
 
-package sql
+package db
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
@@ -53,13 +53,13 @@ type ProjectTag struct {
 }
 
 type Repo struct {
-	Repoid     pgtype.UUID
-	Uid        pgtype.UUID
-	Name       string
-	Url        string
-	Desciption *string
-	Star       *int32
-	Fork       *int32
+	Repoid      pgtype.UUID
+	Uid         pgtype.UUID
+	Name        string
+	Url         string
+	Description *string
+	Star        *int32
+	Fork        *int32
 }
 
 type Roadmap struct {
@@ -82,7 +82,7 @@ type Teammember struct {
 
 type User struct {
 	Uid      pgtype.UUID
-	Email    string
+	Login    string
 	Name     string
 	Avatar   *string
 	Location *string

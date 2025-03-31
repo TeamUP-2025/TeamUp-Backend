@@ -3,7 +3,7 @@
 //   sqlc v1.28.0
 // source: query.sql
 
-package sql
+package db
 
 import (
 	"context"
@@ -11,16 +11,30 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getUserToken = `-- name: GetUserToken :one
+SELECT token
+FROM "user"
+WHERE uId = $1
+`
+
+func (q *Queries) GetUserToken(ctx context.Context, uid pgtype.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, getUserToken, uid)
+	var token string
+	err := row.Scan(&token)
+	return token, err
+}
+
 const upsertUseAndReturnUidAndName = `-- name: UpsertUseAndReturnUidAndName :one
-INSERT INTO "user" (email, name, avatar, location, token)
+
+INSERT INTO "user" (login, name, avatar, location, token)
 VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT (email)
+ON CONFLICT (login)
 DO UPDATE SET token = $5, location = $4, avatar = $3, name = $2
 RETURNING uid, name
 `
 
 type UpsertUseAndReturnUidAndNameParams struct {
-	Email    string
+	Login    string
 	Name     string
 	Avatar   *string
 	Location *string
@@ -32,9 +46,11 @@ type UpsertUseAndReturnUidAndNameRow struct {
 	Name string
 }
 
+// - name: getAllUser :many
+// SELECT * FROM user;
 func (q *Queries) UpsertUseAndReturnUidAndName(ctx context.Context, arg UpsertUseAndReturnUidAndNameParams) (UpsertUseAndReturnUidAndNameRow, error) {
 	row := q.db.QueryRow(ctx, upsertUseAndReturnUidAndName,
-		arg.Email,
+		arg.Login,
 		arg.Name,
 		arg.Avatar,
 		arg.Location,
@@ -43,31 +59,4 @@ func (q *Queries) UpsertUseAndReturnUidAndName(ctx context.Context, arg UpsertUs
 	var i UpsertUseAndReturnUidAndNameRow
 	err := row.Scan(&i.Uid, &i.Name)
 	return i, err
-}
-
-const getAllUser = `-- name: getAllUser :many
-SELECT  FROM user
-`
-
-type getAllUserRow struct {
-}
-
-func (q *Queries) getAllUser(ctx context.Context) ([]getAllUserRow, error) {
-	rows, err := q.db.Query(ctx, getAllUser)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []getAllUserRow
-	for rows.Next() {
-		var i getAllUserRow
-		if err := rows.Scan(); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }

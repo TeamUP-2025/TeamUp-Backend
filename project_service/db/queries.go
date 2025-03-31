@@ -1,4 +1,4 @@
-package sql
+package db
 
 import (
 	"context"
@@ -7,6 +7,22 @@ import (
 )
 
 func UpsertUserQuery(data UpsertUseAndReturnUidAndNameParams, databaseUrl string) (UpsertUseAndReturnUidAndNameRow, error) {
+	ctx := context.Background()
+
+	conn, err := pgx.Connect(ctx, databaseUrl)
+	if err != nil {
+		return UpsertUseAndReturnUidAndNameRow{}, err
+	}
+
+	defer conn.Close(ctx)
+
+	queries := New(conn)
+
+	return queries.UpsertUseAndReturnUidAndName(ctx, data)
+
+}
+
+func GetTokenQuery(data UpsertUseAndReturnUidAndNameParams, databaseUrl string) (UpsertUseAndReturnUidAndNameRow, error) {
 	ctx := context.Background()
 
 	conn, err := pgx.Connect(ctx, databaseUrl)

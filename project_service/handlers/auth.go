@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/TeamUP-2025/TeamUp-Backend/db"
 	"github.com/TeamUP-2025/TeamUp-Backend/services"
-	// "github.com/TeamUP-2025/TeamUp-Backend/sql"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/oauth2"
@@ -17,11 +17,13 @@ type AuthHandler struct {
 	config       *oauth2.Config
 	jwtSecret    []byte
 	githubSerice *services.GithubService
-	// databaseUrl string
+	databaseUrl string
 }
 
-func NewAuthHandler(clientID, clientSecret string, jwtSecret string, 
-	// databaseUrl string
+func NewAuthHandler(clientID, 
+	clientSecret string, 
+	jwtSecret string, 
+	databaseUrl string,
 	) *AuthHandler {
 	config := &oauth2.Config{
 		ClientID:     clientID,
@@ -37,7 +39,7 @@ func NewAuthHandler(clientID, clientSecret string, jwtSecret string,
 		githubSerice: services.NewGithubService(clientID, clientSecret),
 		config:       config,
 		jwtSecret:    []byte(jwtSecret),
-		// databaseUrl: databaseUrl,
+		databaseUrl: databaseUrl,
 	}
 }
 
@@ -60,34 +62,35 @@ func (h *AuthHandler) HandleGithubCallback(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	user, _, err := services.GetUserProfile(token.AccessToken)
+	acessToken := token.AccessToken
+	user, _, err := services.GetUserProfile(acessToken)
 
 	if err != nil {
 		http.Error(w, "Failed to get user profile", http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Println(user)
-	// userData := sql.UpsertUseAndReturnUidAndNameParams{
-	// 	Email: *user.Email,
-	// 	Name: *user.Name,
-	// 	Avatar:   user.AvatarURL,
-	// 	Location: user.Location,
-	// 	Token: token.AccessToken,
-	// }
 
-	// data, err := sql.UpsertUserQuery(userData, h.databaseUrl)
+	userData := db.UpsertUseAndReturnUidAndNameParams{
+		Login: *user.Login,
+		Name: *user.Name,
+		Avatar:   user.AvatarURL,
+		Location: user.Location,
+		Token: acessToken,
+	}
+
+	data, err := db.UpsertUserQuery(userData, h.databaseUrl)
 
 	if err != nil{
-		http.Error(w, "Failed to create JWT token", http.StatusInternalServerError)
+		http.Error(w, "Failed to upsert user data", http.StatusInternalServerError)
 		return
 	};
 
 	// Create JWT token
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"access_token": token.AccessToken,
-		// "name":         data.Name,
-		// "uid": 			data.Uid,
+		"name":         user.Name,
+		"login": 		user.Login,
+		"uid": 			data.Uid,
 		"exp":          time.Now().Add(time.Hour * 24).Unix(),
 	})
 
