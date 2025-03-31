@@ -37,7 +37,6 @@ func main() {
 		cfg.GithubClientID,
 		cfg.GithubClientSecret,
 		cfg.JWTSecret,
-		cfg.DatabaseURL,
 	)
 
 	r.Group(func(r chi.Router) {
