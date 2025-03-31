@@ -20,6 +20,7 @@ func UserOnly(cfg *config.Config) func(http.Handler) http.Handler {
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
+			
 			token, err := jwt.Parse(tokenFromCookie.Value, func(token *jwt.Token) (interface{}, error) {
 				// Don't forget to validate the alg is what you expect:
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -36,7 +37,8 @@ func UserOnly(cfg *config.Config) func(http.Handler) http.Handler {
 			}
 
 			if claims, ok := token.Claims.(jwt.MapClaims); ok {
-				ctx := context.WithValue(r.Context(), "token", claims["access_token"])
+				ctx := context.WithValue(r.Context(), "token", claims)
+				
 				newReq := r.WithContext(ctx)
 				next.ServeHTTP(w, newReq)
 			} else {

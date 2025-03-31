@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.28.0
 
-package sql
+package db
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
@@ -12,7 +12,7 @@ type Application struct {
 	Appid       pgtype.UUID
 	Uid         pgtype.UUID
 	Projectid   pgtype.UUID
-	Coverletter pgtype.Text
+	Coverletter *string
 }
 
 type Donation struct {
@@ -32,8 +32,8 @@ type License struct {
 	Licenseid   pgtype.UUID
 	Name        string
 	Description string
-	Permission  pgtype.Text
-	Condition   pgtype.Text
+	Permission  *string
+	Condition   *string
 	Limitation  string
 }
 
@@ -42,7 +42,7 @@ type Project struct {
 	Title       string
 	Description string
 	Repoid      pgtype.UUID
-	Status      pgtype.Text
+	Status      *string
 	CreatedAt   pgtype.Timestamptz
 	Licenseid   pgtype.UUID
 }
@@ -53,13 +53,16 @@ type ProjectTag struct {
 }
 
 type Repo struct {
-	Repoid     pgtype.UUID
-	Uid        pgtype.UUID
-	Name       string
-	Url        string
-	Desciption pgtype.Text
-	Star       pgtype.Int4
-	Fork       pgtype.Int4
+	Repoid      pgtype.UUID
+	Uid         pgtype.UUID
+	Name        string
+	Url         string
+	Description *string
+	Star        *int32
+	Fork        *int32
+	LastUpdated pgtype.Timestamptz
+	Language    *string
+	UpdatedAt   pgtype.Timestamptz
 }
 
 type Roadmap struct {
@@ -81,12 +84,19 @@ type Teammember struct {
 }
 
 type User struct {
-	Uid      pgtype.UUID
-	Email    string
-	Name     string
-	Avatar   pgtype.Text
-	Location pgtype.Text
-	Token    string
+	Uid               pgtype.UUID
+	Login             string
+	Name              string
+	Avatar            *string
+	Location          *string
+	Token             string
+	Bio               *string
+	Followers         *int32
+	Following         *int32
+	PublicRepos       *int32
+	TotalPrivateRepos *int32
+	HtmlUrl           *string
+	LastUpdated       pgtype.Timestamptz
 }
 
 type UserTag struct {
