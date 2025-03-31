@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func UpsertUserQuery(data UpsertUseAndReturnUidAndNameParams, databaseUrl string) (UpsertUseAndReturnUidAndNameRow, error) {
@@ -22,18 +23,23 @@ func UpsertUserQuery(data UpsertUseAndReturnUidAndNameParams, databaseUrl string
 
 }
 
-func GetTokenQuery(data UpsertUseAndReturnUidAndNameParams, databaseUrl string) (UpsertUseAndReturnUidAndNameRow, error) {
+func GetTokenQuery(uid string, databaseUrl string) (string, error) {
 	ctx := context.Background()
 
 	conn, err := pgx.Connect(ctx, databaseUrl)
 	if err != nil {
-		return UpsertUseAndReturnUidAndNameRow{}, err
+		return "", err
 	}
 
 	defer conn.Close(ctx)
 
 	queries := New(conn)
+	uuid := pgtype.UUID{}
+	err = uuid.Scan(uid)
+	if err != nil {
+		return "", err
+	}
 
-	return queries.UpsertUseAndReturnUidAndName(ctx, data)
+	return queries.GetUserToken(ctx, uuid)
 
 }
