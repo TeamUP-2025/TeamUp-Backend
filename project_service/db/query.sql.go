@@ -12,10 +12,10 @@ import (
 )
 
 const getCachedRepos = `-- name: GetCachedRepos :many
-SELECT repoid, uid, name, url, description, star, fork, last_updated, language
+SELECT repoid, uid, name, url, description, star, fork, last_updated, language, updated_at
 FROM repo
 WHERE uid = $1 AND last_updated > NOW() - INTERVAL '1 day'
-ORDER BY star DESC
+ORDER BY star DESC, updated_at DESC NULLS LAST
 LIMIT 4
 `
 
@@ -38,6 +38,7 @@ func (q *Queries) GetCachedRepos(ctx context.Context, uid pgtype.UUID) ([]Repo, 
 			&i.Fork,
 			&i.LastUpdated,
 			&i.Language,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -162,17 +163,19 @@ INSERT INTO repo (
     star, 
     fork,
     language,
+    updated_at,
     last_updated
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
 ON CONFLICT (uid, name) 
 DO UPDATE SET 
     description = $4,
     star = $5,
     fork = $6,
     language = $7,
+    updated_at = $8,
     last_updated = CURRENT_TIMESTAMP
-RETURNING repoid, uid, name, url, description, star, fork, last_updated, language
+RETURNING repoid, uid, name, url, description, star, fork, last_updated, language, updated_at
 `
 
 type UpsertRepoParams struct {
@@ -183,6 +186,7 @@ type UpsertRepoParams struct {
 	Star        *int32
 	Fork        *int32
 	Language    *string
+	UpdatedAt   pgtype.Timestamptz
 }
 
 func (q *Queries) UpsertRepo(ctx context.Context, arg UpsertRepoParams) (Repo, error) {
@@ -194,6 +198,7 @@ func (q *Queries) UpsertRepo(ctx context.Context, arg UpsertRepoParams) (Repo, e
 		arg.Star,
 		arg.Fork,
 		arg.Language,
+		arg.UpdatedAt,
 	)
 	var i Repo
 	err := row.Scan(
@@ -206,6 +211,7 @@ func (q *Queries) UpsertRepo(ctx context.Context, arg UpsertRepoParams) (Repo, e
 		&i.Fork,
 		&i.LastUpdated,
 		&i.Language,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

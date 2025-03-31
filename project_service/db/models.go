@@ -62,6 +62,7 @@ type Repo struct {
 	Fork        *int32
 	LastUpdated pgtype.Timestamptz
 	Language    *string
+	UpdatedAt   pgtype.Timestamptz
 }
 
 type Roadmap struct {

@@ -44,7 +44,7 @@ WHERE uid = $1 AND last_updated > NOW() - INTERVAL '1 day';
 SELECT *
 FROM repo
 WHERE uid = $1 AND last_updated > NOW() - INTERVAL '1 day'
-ORDER BY star DESC
+ORDER BY star DESC, updated_at DESC NULLS LAST
 LIMIT 4;
 
 -- The rest of the queries remain the same
@@ -74,14 +74,16 @@ INSERT INTO repo (
     star, 
     fork,
     language,
+    updated_at,
     last_updated
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
 ON CONFLICT (uid, name) 
 DO UPDATE SET 
     description = $4,
     star = $5,
     fork = $6,
     language = $7,
+    updated_at = $8,
     last_updated = CURRENT_TIMESTAMP
 RETURNING *;

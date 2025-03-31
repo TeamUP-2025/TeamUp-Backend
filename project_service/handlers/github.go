@@ -196,6 +196,13 @@ func (h *GithubHandler) GithubRecentRepoHandler(w http.ResponseWriter, r *http.R
 		star := int32(*repo.StargazersCount)
 		fork := int32(*repo.ForksCount)
 
+		// Convert GitHub's UpdatedAt to pgtype.Timestamptz
+		var updatedAt pgtype.Timestamptz
+		if repo.UpdatedAt != nil {
+			updatedAt.Time = repo.UpdatedAt.Time
+			updatedAt.Valid = true
+		}
+
 		_, err := queries.UpsertRepo(ctx, db.UpsertRepoParams{
 			Uid:         uuid,
 			Name:        *repo.Name,
@@ -204,7 +211,9 @@ func (h *GithubHandler) GithubRecentRepoHandler(w http.ResponseWriter, r *http.R
 			Star:        &star,
 			Fork:        &fork,
 			Language:    repo.Language,
+			UpdatedAt:   updatedAt,
 		})
+		
 		if err != nil {
 			respondInternalServerError(w, err)
 			return

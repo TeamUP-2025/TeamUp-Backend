@@ -147,3 +147,8 @@ ADD CONSTRAINT unique_user_repo UNIQUE (uid, name);
 
 ALTER TABLE "repo"
 ADD COLUMN language VARCHAR;
+
+-- +goose StatementBegin
+ALTER TABLE "repo"
+ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE;
+-- +goose StatementEnd
