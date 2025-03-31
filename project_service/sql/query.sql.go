@@ -7,7 +7,43 @@ package sql
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const upsertUseAndReturnUidAndName = `-- name: UpsertUseAndReturnUidAndName :one
+INSERT INTO "user" (email, name, avatar, location, token)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (email)
+DO UPDATE SET token = $5, location = $4, avatar = $3, name = $2
+RETURNING uid, name
+`
+
+type UpsertUseAndReturnUidAndNameParams struct {
+	Email    string
+	Name     string
+	Avatar   *string
+	Location *string
+	Token    string
+}
+
+type UpsertUseAndReturnUidAndNameRow struct {
+	Uid  pgtype.UUID
+	Name string
+}
+
+func (q *Queries) UpsertUseAndReturnUidAndName(ctx context.Context, arg UpsertUseAndReturnUidAndNameParams) (UpsertUseAndReturnUidAndNameRow, error) {
+	row := q.db.QueryRow(ctx, upsertUseAndReturnUidAndName,
+		arg.Email,
+		arg.Name,
+		arg.Avatar,
+		arg.Location,
+		arg.Token,
+	)
+	var i UpsertUseAndReturnUidAndNameRow
+	err := row.Scan(&i.Uid, &i.Name)
+	return i, err
+}
 
 const getAllUser = `-- name: getAllUser :many
 SELECT  FROM user

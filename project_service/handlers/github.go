@@ -1,19 +1,16 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
-
-	"github.com/google/go-github/v69/github"
+	"github.com/TeamUP-2025/TeamUp-Backend/services"
 )
 
 func GithubProfileHandler(w http.ResponseWriter, r *http.Request) {
 
 	var token string = r.Context().Value("token").(string)
-	client := github.NewClient(nil).WithAuthToken(token)
 
-	user, _, err := client.Users.Get(context.Background(), "")
+	user, _, err := services.GetUserProfile(token)
 
 	if err != nil {
 		return
@@ -28,13 +25,7 @@ func GithubProfileHandler(w http.ResponseWriter, r *http.Request) {
 
 func GithubRecentRepoHandler(w http.ResponseWriter, r *http.Request) {
 	var token string = r.Context().Value("token").(string)
-	client := github.NewClient(nil).WithAuthToken(token)
-
-	opt := &github.RepositoryListByAuthenticatedUserOptions{
-		Sort:       "updated",
-		Visibility: "public",
-	}
-	repo, _, err := client.Repositories.ListByAuthenticatedUser(context.Background(), opt)
+	repo, _, err := services.GetUserRepository(token)
 
 	if err != nil {
 		return

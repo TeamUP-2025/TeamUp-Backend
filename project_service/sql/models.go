@@ -12,7 +12,7 @@ type Application struct {
 	Appid       pgtype.UUID
 	Uid         pgtype.UUID
 	Projectid   pgtype.UUID
-	Coverletter pgtype.Text
+	Coverletter *string
 }
 
 type Donation struct {
@@ -32,8 +32,8 @@ type License struct {
 	Licenseid   pgtype.UUID
 	Name        string
 	Description string
-	Permission  pgtype.Text
-	Condition   pgtype.Text
+	Permission  *string
+	Condition   *string
 	Limitation  string
 }
 
@@ -42,7 +42,7 @@ type Project struct {
 	Title       string
 	Description string
 	Repoid      pgtype.UUID
-	Status      pgtype.Text
+	Status      *string
 	CreatedAt   pgtype.Timestamptz
 	Licenseid   pgtype.UUID
 }
@@ -57,9 +57,9 @@ type Repo struct {
 	Uid        pgtype.UUID
 	Name       string
 	Url        string
-	Desciption pgtype.Text
-	Star       pgtype.Int4
-	Fork       pgtype.Int4
+	Desciption *string
+	Star       *int32
+	Fork       *int32
 }
 
 type Roadmap struct {
@@ -84,8 +84,8 @@ type User struct {
 	Uid      pgtype.UUID
 	Email    string
 	Name     string
-	Avatar   pgtype.Text
-	Location pgtype.Text
+	Avatar   *string
+	Location *string
 	Token    string
 }
 
