@@ -87,3 +87,33 @@ DO UPDATE SET
     updated_at = $8,
     last_updated = CURRENT_TIMESTAMP
 RETURNING *;
+
+-- name: SearchProjectByParameter :many
+SELECT 
+  p.projectId AS id,
+  p.title,
+  p.description,
+  p.status,
+  l.name AS license,
+  array_remove(array_agg(DISTINCT t.name), NULL) AS tags
+FROM project p
+JOIN license l ON p.licenseId = l.licenseId
+LEFT JOIN "projectTag" pt ON p.projectId = pt.projectId
+LEFT JOIN tag t ON pt.tagId = t.tagId
+WHERE 1=1
+  AND (NULLIF($1::varchar, '') IS NULL OR p.title ILIKE '%' || $1 || '%')
+  AND (NULLIF($2::varchar, '') IS NULL OR p.status = $2)
+  AND (NULLIF($3::varchar, '') IS NULL OR l.name = $3)
+  AND (
+    CARDINALITY($4::text[]) = 0
+    OR 
+    p.projectId IN (
+      SELECT pt2.projectId
+      FROM "projectTag" pt2
+      JOIN tag t2 ON pt2.tagId = t2.tagId
+      WHERE t2.name = ANY($4::text[])
+    )
+  )
+GROUP BY 
+  p.projectId, p.title, p.description, p.status, l.name
+ORDER BY p.title;

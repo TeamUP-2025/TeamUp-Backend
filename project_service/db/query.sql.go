@@ -90,6 +90,85 @@ func (q *Queries) GetUserToken(ctx context.Context, uid pgtype.UUID) (string, er
 	return token, err
 }
 
+const searchProjectByParameter = `-- name: SearchProjectByParameter :many
+SELECT 
+  p.projectId AS id,
+  p.title,
+  p.description,
+  p.status,
+  l.name AS license,
+  array_remove(array_agg(DISTINCT t.name), NULL) AS tags
+FROM project p
+JOIN license l ON p.licenseId = l.licenseId
+LEFT JOIN "projectTag" pt ON p.projectId = pt.projectId
+LEFT JOIN tag t ON pt.tagId = t.tagId
+WHERE 1=1
+  AND (NULLIF($1::varchar, '') IS NULL OR p.title ILIKE '%' || $1 || '%')
+  AND (NULLIF($2::varchar, '') IS NULL OR p.status = $2)
+  AND (NULLIF($3::varchar, '') IS NULL OR l.name = $3)
+  AND (
+    CARDINALITY($4::text[]) = 0
+    OR 
+    p.projectId IN (
+      SELECT pt2.projectId
+      FROM "projectTag" pt2
+      JOIN tag t2 ON pt2.tagId = t2.tagId
+      WHERE t2.name = ANY($4::text[])
+    )
+  )
+GROUP BY 
+  p.projectId, p.title, p.description, p.status, l.name
+ORDER BY p.title
+`
+
+type SearchProjectByParameterParams struct {
+	Column1 string
+	Column2 string
+	Column3 string
+	Column4 []string
+}
+
+type SearchProjectByParameterRow struct {
+	ID          pgtype.UUID
+	Title       string
+	Description string
+	Status      *string
+	License     string
+	Tags        interface{}
+}
+
+func (q *Queries) SearchProjectByParameter(ctx context.Context, arg SearchProjectByParameterParams) ([]SearchProjectByParameterRow, error) {
+	rows, err := q.db.Query(ctx, searchProjectByParameter,
+		arg.Column1,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchProjectByParameterRow
+	for rows.Next() {
+		var i SearchProjectByParameterRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.Status,
+			&i.License,
+			&i.Tags,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateUserProfile = `-- name: UpdateUserProfile :one
 
 UPDATE "user"

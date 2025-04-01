@@ -24,11 +24,15 @@ func main() {
 		cfg.GithubClientSecret,
 		cfg.DatabaseURL,
 	)
+
+	projectHandler := handlers.NewProjectHandler(
+		cfg.DatabaseURL,
+	)
+
 	r.Group(func(r chi.Router) {
 		r.Get("/auth/github", authHandler.HandleGithubLogin)
 		r.Get("/auth/github/callback", authHandler.HandleGithubCallback)
 	})
-
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.UserOnly(cfg))
@@ -36,5 +40,8 @@ func main() {
 		r.Get("/git/repos", githubHandler.GithubRecentRepoHandler)
 	})
 
+	r.Group(func(r chi.Router) {
+		r.Get("/project", projectHandler.HandleSearchProject)
+	})
 	http.ListenAndServe(":8080", r)
 }
