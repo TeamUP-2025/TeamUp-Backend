@@ -345,7 +345,7 @@ type UpsertUseAndReturnUidAndNameRow struct {
 	Name string
 }
 
-// - name: getAllUser :many
+//- name: getAllUser :many
 // SELECT * FROM user;
 func (q *Queries) UpsertUseAndReturnUidAndName(ctx context.Context, arg UpsertUseAndReturnUidAndNameParams) (UpsertUseAndReturnUidAndNameRow, error) {
 	row := q.db.QueryRow(ctx, upsertUseAndReturnUidAndName,
@@ -363,5 +363,26 @@ func (q *Queries) UpsertUseAndReturnUidAndName(ctx context.Context, arg UpsertUs
 	)
 	var i UpsertUseAndReturnUidAndNameRow
 	err := row.Scan(&i.Uid, &i.Name)
+	return i, err
+}
+
+const getProjectByProjectId = `-- name: getProjectByProjectId :one
+SELECT projectid, title, description, repoid, status, created_at, licenseid
+FROM project
+WHERE projectid = $1
+`
+
+func (q *Queries) getProjectByProjectId(ctx context.Context, projectid pgtype.UUID) (Project, error) {
+	row := q.db.QueryRow(ctx, getProjectByProjectId, projectid)
+	var i Project
+	err := row.Scan(
+		&i.Projectid,
+		&i.Title,
+		&i.Description,
+		&i.Repoid,
+		&i.Status,
+		&i.CreatedAt,
+		&i.Licenseid,
+	)
 	return i, err
 }

@@ -117,3 +117,27 @@ WHERE 1=1
 GROUP BY 
   p.projectId, p.title, p.description, p.status, l.name
 ORDER BY p.title;
+
+-- name: getProjectByProjectId :one
+SELECT *
+FROM project
+WHERE projectid = $1;
+
+
+-- -- name: UpdateProjectWithTags :exec
+-- -- update project title and description
+-- UPDATE "project"
+-- SET
+--     title = $2,
+--     description = $3
+-- WHERE projectid = $1;
+--
+-- -- delete tags that registered to the project
+-- DELETE FROM "projectTag"
+-- WHERE projectid = $1;
+--
+-- -- Register new tags to the project
+-- INSERT INTO "projectTag" (projectid, tagid)
+-- SELECT $1, tag.tagid
+-- FROM "tag"
+-- WHERE tag.tagname = ANY($4::varchar[])
