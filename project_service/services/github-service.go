@@ -25,6 +25,7 @@ func GetUserRepository(token string) ([]*github.Repository, *github.Response, er
 	opt := &github.RepositoryListByAuthenticatedUserOptions{
 		Sort:       "updated",
 		Visibility: "public",
+		
 	}
 
 	return client.Repositories.ListByAuthenticatedUser(context.Background(), opt)

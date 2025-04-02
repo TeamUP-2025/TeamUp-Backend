@@ -14,7 +14,9 @@ import (
 const getCachedRepos = `-- name: GetCachedRepos :many
 SELECT repoid, uid, name, url, description, star, fork, last_updated, language, updated_at
 FROM repo
-WHERE uid = $1 AND last_updated > NOW() - INTERVAL '1 day'
+WHERE
+    uid = $1
+    AND last_updated > NOW() - INTERVAL '1 day'
 ORDER BY star DESC, updated_at DESC NULLS LAST
 LIMIT 4
 `
@@ -50,10 +52,106 @@ func (q *Queries) GetCachedRepos(ctx context.Context, uid pgtype.UUID) ([]Repo, 
 	return items, nil
 }
 
+const getRepoByLogin = `-- name: GetRepoByLogin :many
+SELECT repoid, uid, name, url, description, star, fork, last_updated, language, updated_at
+FROM "repo"
+WHERE uid in (
+  SELECT uid
+  FROM "user"
+  WHERE "user".login = $1
+)
+ORDER BY star DESC, updated_at DESC NULLS LAST
+LIMIT 4
+`
+
+func (q *Queries) GetRepoByLogin(ctx context.Context, login string) ([]Repo, error) {
+	rows, err := q.db.Query(ctx, getRepoByLogin, login)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Repo
+	for rows.Next() {
+		var i Repo
+		if err := rows.Scan(
+			&i.Repoid,
+			&i.Uid,
+			&i.Name,
+			&i.Url,
+			&i.Description,
+			&i.Star,
+			&i.Fork,
+			&i.LastUpdated,
+			&i.Language,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUserInfoByLogin = `-- name: GetUserInfoByLogin :one
+SELECT
+    uid,
+    login,
+    name,
+    avatar,
+    location,
+    bio,
+    followers,
+    following,
+    public_repos,
+    total_private_repos,
+    html_url
+FROM "user"
+WHERE
+    "user".login = $1
+`
+
+type GetUserInfoByLoginRow struct {
+	Uid               pgtype.UUID
+	Login             string
+	Name              string
+	Avatar            *string
+	Location          *string
+	Bio               *string
+	Followers         *int32
+	Following         *int32
+	PublicRepos       *int32
+	TotalPrivateRepos *int32
+	HtmlUrl           *string
+}
+
+func (q *Queries) GetUserInfoByLogin(ctx context.Context, login string) (GetUserInfoByLoginRow, error) {
+	row := q.db.QueryRow(ctx, getUserInfoByLogin, login)
+	var i GetUserInfoByLoginRow
+	err := row.Scan(
+		&i.Uid,
+		&i.Login,
+		&i.Name,
+		&i.Avatar,
+		&i.Location,
+		&i.Bio,
+		&i.Followers,
+		&i.Following,
+		&i.PublicRepos,
+		&i.TotalPrivateRepos,
+		&i.HtmlUrl,
+	)
+	return i, err
+}
+
 const getUserProfile = `-- name: GetUserProfile :one
 SELECT uid, login, name, avatar, location, token, bio, followers, following, public_repos, total_private_repos, html_url, last_updated
 FROM "user"
-WHERE uid = $1 AND last_updated > NOW() - INTERVAL '1 day'
+WHERE
+    uid = $1
+    AND last_updated > NOW() - INTERVAL '1 day'
 `
 
 func (q *Queries) GetUserProfile(ctx context.Context, uid pgtype.UUID) (User, error) {
@@ -78,9 +176,7 @@ func (q *Queries) GetUserProfile(ctx context.Context, uid pgtype.UUID) (User, er
 }
 
 const getUserToken = `-- name: GetUserToken :one
-SELECT token
-FROM "user"
-WHERE uId = $1
+SELECT token FROM "user" WHERE uId = $1
 `
 
 func (q *Queries) GetUserToken(ctx context.Context, uid pgtype.UUID) (string, error) {
@@ -172,7 +268,7 @@ func (q *Queries) SearchProjectByParameter(ctx context.Context, arg SearchProjec
 const updateUserProfile = `-- name: UpdateUserProfile :one
 
 UPDATE "user"
-SET 
+SET
     name = $2,
     avatar = $3,
     location = $4,
@@ -183,8 +279,8 @@ SET
     total_private_repos = $9,
     html_url = $10,
     last_updated = CURRENT_TIMESTAMP
-WHERE uid = $1
-RETURNING uid, login, name, avatar, location, token, bio, followers, following, public_repos, total_private_repos, html_url, last_updated
+WHERE
+    uid = $1 RETURNING uid, login, name, avatar, location, token, bio, followers, following, public_repos, total_private_repos, html_url, last_updated
 `
 
 type UpdateUserProfileParams struct {
@@ -234,27 +330,37 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 }
 
 const upsertRepo = `-- name: UpsertRepo :one
-INSERT INTO repo (
-    uid, 
-    name, 
-    url, 
-    description, 
-    star, 
-    fork,
-    language,
-    updated_at,
-    last_updated
-)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
-ON CONFLICT (uid, name) 
-DO UPDATE SET 
+INSERT INTO
+    repo (
+        uid,
+        name,
+        url,
+        description,
+        star,
+        fork,
+        language,
+        updated_at,
+        last_updated
+    )
+VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        CURRENT_TIMESTAMP
+    ) ON CONFLICT (uid, name) DO
+UPDATE
+SET
     description = $4,
     star = $5,
     fork = $6,
     language = $7,
     updated_at = $8,
-    last_updated = CURRENT_TIMESTAMP
-RETURNING repoid, uid, name, url, description, star, fork, last_updated, language, updated_at
+    last_updated = CURRENT_TIMESTAMP RETURNING repoid, uid, name, url, description, star, fork, last_updated, language, updated_at
 `
 
 type UpsertRepoParams struct {
@@ -297,22 +403,35 @@ func (q *Queries) UpsertRepo(ctx context.Context, arg UpsertRepoParams) (Repo, e
 
 const upsertUseAndReturnUidAndName = `-- name: UpsertUseAndReturnUidAndName :one
 
-INSERT INTO "user" (
-    login, 
-    name, 
-    avatar, 
-    location, 
-    token,
-    bio,
-    followers,
-    following,
-    public_repos,
-    total_private_repos,
-    html_url
-)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-ON CONFLICT (login)
-DO UPDATE SET 
+INSERT INTO
+    "user" (
+        login,
+        name,
+        avatar,
+        location,
+        token,
+        bio,
+        followers,
+        following,
+        public_repos,
+        total_private_repos,
+        html_url
+    )
+VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        $9,
+        $10,
+        $11
+    ) ON CONFLICT (login) DO
+UPDATE
+SET
     token = $5,
     location = $4,
     avatar = $3,
@@ -322,8 +441,8 @@ DO UPDATE SET
     following = $8,
     public_repos = $9,
     total_private_repos = $10,
-    html_url = $11
-RETURNING uid, name
+    html_url = $11 RETURNING uid,
+    name
 `
 
 type UpsertUseAndReturnUidAndNameParams struct {

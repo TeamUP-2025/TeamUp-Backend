@@ -43,5 +43,9 @@ func main() {
 	r.Group(func(r chi.Router) {
 		r.Get("/project", projectHandler.HandleSearchProject)
 	})
+
+	r.Get("/profile/{login}", projectHandler.HandleGetUserByLogin)
+	r.Get("/repos/{login}", projectHandler.HandleGetRepoByLogin)
+
 	http.ListenAndServe(":8080", r)
 }

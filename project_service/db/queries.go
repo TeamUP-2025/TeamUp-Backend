@@ -79,3 +79,33 @@ func SearchProjectByParameterQuery(r *http.Request, databaseUrl string) ([]Searc
 	)
 
 }
+
+func GetUserByLoginQuery(login string, databaseUrl string) (GetUserInfoByLoginRow ,error) {
+	ctx := context.Background()
+
+	conn, err := pgx.Connect(ctx, databaseUrl)
+	if err != nil {
+		return GetUserInfoByLoginRow{}, err
+	}
+
+	defer conn.Close(ctx)
+
+	queries := New(conn)
+
+	return queries.GetUserInfoByLogin(ctx, login)
+}
+
+func GetRepoByLoginQuery(login string, databaseUrl string) ([]Repo, error) {
+	ctx := context.Background()
+
+	conn, err := pgx.Connect(ctx, databaseUrl)
+	if err != nil {
+		return []Repo{}, err
+	}
+
+	defer conn.Close(ctx)
+
+	queries := New(conn)
+
+	return queries.GetRepoByLogin(ctx, login)
+}
