@@ -119,9 +119,31 @@ GROUP BY
 ORDER BY p.title;
 
 -- name: getProjectByProjectId :one
-SELECT *
+SELECT
+    project.projectid,
+    project.title,
+    project.description,
+    project.status,
+    json_agg(
+            json_build_object(
+                    'licenseName', license.name,
+                    'description', license.description,
+                    'permission', license.permission,
+                    'condition', license.condition,
+                    'limitation', license.limitation
+            )
+    ) AS license,
+    json_agg(
+            json_build_object(
+                    'goalName', goal.name,
+                    'goalDescription', goal.description
+            )
+    ) AS goal
 FROM project
-WHERE projectid = $1;
+         JOIN goal ON goal.projectid = project.projectid
+         JOIN license ON license.licenseid = project.licenseid
+WHERE project.projectid = $1
+GROUP BY project.projectid, project.title, project.description, project.status;
 
 
 -- -- name: UpdateProjectWithTags :exec

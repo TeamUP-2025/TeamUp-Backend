@@ -367,22 +367,52 @@ func (q *Queries) UpsertUseAndReturnUidAndName(ctx context.Context, arg UpsertUs
 }
 
 const getProjectByProjectId = `-- name: getProjectByProjectId :one
-SELECT projectid, title, description, repoid, status, created_at, licenseid
+SELECT
+    project.projectid,
+    project.title,
+    project.description,
+    project.status,
+    json_agg(
+            json_build_object(
+                    'licenseName', license.name,
+                    'description', license.description,
+                    'permission', license.permission,
+                    'condition', license.condition,
+                    'limitation', license.limitation
+            )
+    ) AS license,
+    json_agg(
+            json_build_object(
+                    'goalName', goal.name,
+                    'goalDescription', goal.description
+            )
+    ) AS goal
 FROM project
-WHERE projectid = $1
+         JOIN goal ON goal.projectid = project.projectid
+         JOIN license ON license.licenseid = project.licenseid
+WHERE project.projectid = $1
+GROUP BY project.projectid, project.title, project.description, project.status
 `
 
-func (q *Queries) getProjectByProjectId(ctx context.Context, projectid pgtype.UUID) (Project, error) {
+type getProjectByProjectIdRow struct {
+	Projectid   pgtype.UUID
+	Title       string
+	Description string
+	Status      *string
+	License     []byte
+	Goal        []byte
+}
+
+func (q *Queries) getProjectByProjectId(ctx context.Context, projectid pgtype.UUID) (getProjectByProjectIdRow, error) {
 	row := q.db.QueryRow(ctx, getProjectByProjectId, projectid)
-	var i Project
+	var i getProjectByProjectIdRow
 	err := row.Scan(
 		&i.Projectid,
 		&i.Title,
 		&i.Description,
-		&i.Repoid,
 		&i.Status,
-		&i.CreatedAt,
-		&i.Licenseid,
+		&i.License,
+		&i.Goal,
 	)
 	return i, err
 }

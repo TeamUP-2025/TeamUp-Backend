@@ -80,12 +80,12 @@ func SearchProjectByParameterQuery(r *http.Request, databaseUrl string) ([]Searc
 
 }
 
-func GetProjectById(projectId string, databaseUrl string) (Project, error) {
+func GetProjectById(projectId string, databaseUrl string) (getProjectByProjectIdRow, error) {
 	ctx := context.Background()
 
 	conn, err := pgx.Connect(ctx, databaseUrl)
 	if err != nil {
-		return Project{}, err
+		return getProjectByProjectIdRow{}, err
 	}
 
 	defer conn.Close(ctx)
@@ -94,7 +94,7 @@ func GetProjectById(projectId string, databaseUrl string) (Project, error) {
 	uuid := pgtype.UUID{}
 	err = uuid.Scan(projectId)
 	if err != nil {
-		return Project{}, err
+		return getProjectByProjectIdRow{}, err
 	}
 	return queries.getProjectByProjectId(ctx, uuid)
 }
