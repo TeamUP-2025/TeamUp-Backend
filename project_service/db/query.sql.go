@@ -15,14 +15,14 @@ const checkAdmissionAndMember = `-- name: CheckAdmissionAndMember :one
 SELECT
     CASE
         WHEN EXISTS (SELECT 1 FROM "teammember" t WHERE t.uId = $1 AND t.projectId = $2)
-         AND EXISTS (SELECT 1 FROM "application" a WHERE a.uId = $1 AND a.projectId = $2)
+            AND EXISTS (SELECT 1 FROM "application" a WHERE a.uId = $1 AND a.projectId = $2)
             THEN 3 -- Both
         WHEN EXISTS (SELECT 1 FROM "teammember" t WHERE t.uId = $1 AND t.projectId = $2)
             THEN 1 -- Member only
         WHEN EXISTS (SELECT 1 FROM "application" a WHERE a.uId = $1 AND a.projectId = $2)
             THEN 2 -- Applicant only
         ELSE 0 -- Neither
-    END AS status_code
+        END AS status_code
 `
 
 type CheckAdmissionAndMemberParams struct {
@@ -42,9 +42,9 @@ SELECT repoid, uid, name, url, description, star, fork, last_updated, language, 
 FROM repo
 WHERE
     uid = $1
-    AND last_updated > NOW() - INTERVAL '1 day'
+  AND last_updated > NOW() - INTERVAL '1 day'
 ORDER BY star DESC, updated_at DESC NULLS LAST
-LIMIT 4
+    LIMIT 4
 `
 
 func (q *Queries) GetCachedRepos(ctx context.Context, uid pgtype.UUID) ([]Repo, error) {
@@ -89,7 +89,7 @@ WHERE
             "user".login = $1
     )
 ORDER BY star DESC, updated_at DESC NULLS LAST
-LIMIT 4
+    LIMIT 4
 `
 
 func (q *Queries) GetRepoByLogin(ctx context.Context, login string) ([]Repo, error) {
@@ -179,7 +179,7 @@ SELECT uid, login, name, avatar, location, token, bio, followers, following, pub
 FROM "user"
 WHERE
     uid = $1
-    AND last_updated > NOW() - INTERVAL '1 day'
+  AND last_updated > NOW() - INTERVAL '1 day'
 `
 
 func (q *Queries) GetUserProfile(ctx context.Context, uid pgtype.UUID) (User, error) {
@@ -372,30 +372,30 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 const upsertRepo = `-- name: UpsertRepo :one
 INSERT INTO
     repo (
-        uid,
-        name,
-        url,
-        description,
-        star,
-        fork,
-        language,
-        updated_at,
-        last_updated
-    )
+    uid,
+    name,
+    url,
+    description,
+    star,
+    fork,
+    language,
+    updated_at,
+    last_updated
+)
 VALUES (
-        $1,
-        $2,
-        $3,
-        $4,
-        $5,
-        $6,
-        $7,
-        $8,
-        CURRENT_TIMESTAMP
-    ) ON CONFLICT (uid, name) DO
+           $1,
+           $2,
+           $3,
+           $4,
+           $5,
+           $6,
+           $7,
+           $8,
+           CURRENT_TIMESTAMP
+       ) ON CONFLICT (uid, name) DO
 UPDATE
-SET
-    description = $4,
+    SET
+        description = $4,
     star = $5,
     fork = $6,
     language = $7,
@@ -445,34 +445,34 @@ const upsertUseAndReturnUidAndName = `-- name: UpsertUseAndReturnUidAndName :one
 
 INSERT INTO
     "user" (
-        login,
-        name,
-        avatar,
-        location,
-        token,
-        bio,
-        followers,
-        following,
-        public_repos,
-        total_private_repos,
-        html_url
-    )
+    login,
+    name,
+    avatar,
+    location,
+    token,
+    bio,
+    followers,
+    following,
+    public_repos,
+    total_private_repos,
+    html_url
+)
 VALUES (
-        $1,
-        $2,
-        $3,
-        $4,
-        $5,
-        $6,
-        $7,
-        $8,
-        $9,
-        $10,
-        $11
-    ) ON CONFLICT (login) DO
+           $1,
+           $2,
+           $3,
+           $4,
+           $5,
+           $6,
+           $7,
+           $8,
+           $9,
+           $10,
+           $11
+       ) ON CONFLICT (login) DO
 UPDATE
-SET
-    token = $5,
+    SET
+        token = $5,
     location = $4,
     avatar = $3,
     name = $2,
@@ -525,6 +525,17 @@ func (q *Queries) UpsertUseAndReturnUidAndName(ctx context.Context, arg UpsertUs
 	return i, err
 }
 
+const deleteExistingProjectTag = `-- name: deleteExistingProjectTag :exec
+DELETE
+FROM "projectTag"
+WHERE projectid = $1
+`
+
+func (q *Queries) deleteExistingProjectTag(ctx context.Context, projectid pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteExistingProjectTag, projectid)
+	return err
+}
+
 const getProjectByProjectId = `-- name: getProjectByProjectId :one
 SELECT
     p.projectid,
@@ -533,30 +544,30 @@ SELECT
     p.status,
     (
         SELECT json_agg (
-                json_build_object (
-                    'licenseName', l.name, 'description', l.description, 'permission', l.permission, 'condition', l.condition, 'limitation', l.limitation
-                )
-            )
+                       json_build_object (
+                               'licenseName', l.name, 'description', l.description, 'permission', l.permission, 'condition', l.condition, 'limitation', l.limitation
+                       )
+               )
         FROM license l
         WHERE
             l.licenseid = p.licenseid
     ) AS license,
     (
         SELECT json_agg (
-                json_build_object (
-                    'goalName', g.name, 'goalDescription', g.description
-                )
-            )
+                       json_build_object (
+                               'goalName', g.name, 'goalDescription', g.description
+                       )
+               )
         FROM goal g
         WHERE
             g.projectid = p.projectid
     ) AS goal,
     (
         SELECT json_agg (
-                json_build_object (
-                    'roadmap', r.roadmap, 'description', r.description, 'status', r.status
-                )
-            )
+                       json_build_object (
+                               'roadmap', r.roadmap, 'description', r.description, 'status', r.status
+                       )
+               )
         FROM roadmap r
         WHERE
             r.projectid = p.projectid
@@ -564,7 +575,7 @@ SELECT
     (
         SELECT ARRAY_AGG (t.name)
         FROM tag t
-            JOIN "projectTag" pt ON pt.tagid = t.tagid
+                 JOIN "projectTag" pt ON pt.tagid = t.tagid
         WHERE
             pt.projectid = p.projectid
     ) AS tag
@@ -598,4 +609,48 @@ func (q *Queries) getProjectByProjectId(ctx context.Context, projectid pgtype.UU
 		&i.Tag,
 	)
 	return i, err
+}
+
+const insertNewTagIfNotExisting = `-- name: insertNewTagIfNotExisting :exec
+INSERT INTO "tag" (name)
+SELECT new_tags.name
+FROM unnest($1) AS new_tags(name)
+WHERE NOT EXISTS (SELECT 1
+                  FROM "tag" t
+                  WHERE t.name = new_tags.name)
+`
+
+func (q *Queries) insertNewTagIfNotExisting(ctx context.Context, unnest interface{}) error {
+	_, err := q.db.Exec(ctx, insertNewTagIfNotExisting, unnest)
+	return err
+}
+
+const insertNewTagsToProjectTag = `-- name: insertNewTagsToProjectTag :exec
+INSERT INTO "projectTag" (projectid, tagid)
+SELECT projectid, t.tagid
+FROM "tag" t
+WHERE t.name = ANY ($1)
+`
+
+func (q *Queries) insertNewTagsToProjectTag(ctx context.Context, name string) error {
+	_, err := q.db.Exec(ctx, insertNewTagsToProjectTag, name)
+	return err
+}
+
+const updateProjectTitleDescription = `-- name: updateProjectTitleDescription :exec
+UPDATE "project"
+SET title       = $2,
+    description = $3
+WHERE projectid = $1
+`
+
+type updateProjectTitleDescriptionParams struct {
+	Projectid   pgtype.UUID
+	Title       string
+	Description string
+}
+
+func (q *Queries) updateProjectTitleDescription(ctx context.Context, arg updateProjectTitleDescriptionParams) error {
+	_, err := q.db.Exec(ctx, updateProjectTitleDescription, arg.Projectid, arg.Title, arg.Description)
+	return err
 }
