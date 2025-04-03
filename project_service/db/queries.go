@@ -80,6 +80,21 @@ func SearchProjectByParameterQuery(r *http.Request, databaseUrl string) ([]Searc
 
 }
 
+func GetUserByLoginQuery(login string, databaseUrl string) (GetUserInfoByLoginRow ,error) {
+	ctx := context.Background()
+
+	conn, err := pgx.Connect(ctx, databaseUrl)
+	if err != nil {
+		return GetUserInfoByLoginRow{}, err
+	}
+
+	defer conn.Close(ctx)
+
+	queries := New(conn)
+
+	return queries.GetUserInfoByLogin(ctx, login)
+}
+
 func GetProjectById(projectId string, databaseUrl string) (getProjectByProjectIdRow, error) {
 	ctx := context.Background()
 
@@ -87,14 +102,27 @@ func GetProjectById(projectId string, databaseUrl string) (getProjectByProjectId
 	if err != nil {
 		return getProjectByProjectIdRow{}, err
 	}
-
-	defer conn.Close(ctx)
-
 	queries := New(conn)
+
 	uuid := pgtype.UUID{}
 	err = uuid.Scan(projectId)
 	if err != nil {
 		return getProjectByProjectIdRow{}, err
 	}
 	return queries.getProjectByProjectId(ctx, uuid)
+}
+
+func GetRepoByLoginQuery(login string, databaseUrl string) ([]Repo, error) {
+	ctx := context.Background()
+
+	conn, err := pgx.Connect(ctx, databaseUrl)
+	if err != nil {
+		return []Repo{}, err
+	}
+
+	defer conn.Close(ctx)
+
+	queries := New(conn)
+
+	return queries.GetRepoByLogin(ctx, login)
 }

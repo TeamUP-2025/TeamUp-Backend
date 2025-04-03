@@ -2,20 +2,35 @@
 -- SELECT * FROM user;
 
 -- name: UpsertUseAndReturnUidAndName :one
-INSERT INTO "user" (login,
-                    name,
-                    avatar,
-                    location,
-                    token,
-                    bio,
-                    followers,
-                    following,
-                    public_repos,
-                    total_private_repos,
-                    html_url)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (login)
-DO
-UPDATE SET
+INSERT INTO
+    "user" (
+        login,
+        name,
+        avatar,
+        location,
+        token,
+        bio,
+        followers,
+        following,
+        public_repos,
+        total_private_repos,
+        html_url
+    )
+VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        $9,
+        $10,
+        $11
+    ) ON CONFLICT (login) DO
+UPDATE
+SET
     token = $5,
     location = $4,
     avatar = $3,
@@ -29,21 +44,21 @@ UPDATE SET
     RETURNING uid, name;
 
 -- name: GetUserToken :one
-SELECT token
-FROM "user"
-WHERE uId = $1;
+SELECT token FROM "user" WHERE uId = $1;
 
 -- name: GetUserProfile :one
 SELECT *
 FROM "user"
-WHERE uid = $1
-  AND last_updated > NOW() - INTERVAL '1 day';
+WHERE
+    uid = $1
+    AND last_updated > NOW() - INTERVAL '1 day';
 
 -- name: GetCachedRepos :many
 SELECT *
 FROM repo
-WHERE uid = $1
-  AND last_updated > NOW() - INTERVAL '1 day'
+WHERE
+    uid = $1
+    AND last_updated > NOW() - INTERVAL '1 day'
 ORDER BY star DESC, updated_at DESC NULLS LAST
     LIMIT 4;
 
@@ -51,38 +66,52 @@ ORDER BY star DESC, updated_at DESC NULLS LAST
 
 -- name: UpdateUserProfile :one
 UPDATE "user"
-SET name                = $2,
-    avatar              = $3,
-    location            = $4,
-    bio                 = $5,
-    followers           = $6,
-    following           = $7,
-    public_repos        = $8,
+SET
+    name = $2,
+    avatar = $3,
+    location = $4,
+    bio = $5,
+    followers = $6,
+    following = $7,
+    public_repos = $8,
     total_private_repos = $9,
-    html_url            = $10,
-    last_updated        = CURRENT_TIMESTAMP
-WHERE uid = $1 RETURNING *;
+    html_url = $10,
+    last_updated = CURRENT_TIMESTAMP
+WHERE
+    uid = $1 RETURNING *;
 
 -- name: UpsertRepo :one
-INSERT INTO repo (uid,
-                  name,
-                  url,
-                  description,
-                  star,
-                  fork,
-                  language,
-                  updated_at,
-                  last_updated)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP) ON CONFLICT (uid, name)
-DO
-UPDATE SET
+INSERT INTO
+    repo (
+        uid,
+        name,
+        url,
+        description,
+        star,
+        fork,
+        language,
+        updated_at,
+        last_updated
+    )
+VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        CURRENT_TIMESTAMP
+    ) ON CONFLICT (uid, name) DO
+UPDATE
+SET
     description = $4,
     star = $5,
     fork = $6,
     language = $7,
     updated_at = $8,
-    last_updated = CURRENT_TIMESTAMP
-    RETURNING *;
+    last_updated = CURRENT_TIMESTAMP RETURNING *;
 
 -- name: SearchProjectByParameter :many
 SELECT p.projectId                                    AS id,
@@ -109,6 +138,34 @@ WHERE 1 = 1
     )
 GROUP BY p.projectId, p.title, p.description, p.status, l.name
 ORDER BY p.title;
+
+-- name: GetRepoByLogin :many
+SELECT *
+FROM "repo"
+WHERE uid in (
+  SELECT uid
+  FROM "user"
+  WHERE "user".login = $1
+)
+ORDER BY star DESC, updated_at DESC NULLS LAST
+LIMIT 4;
+
+-- name: GetUserInfoByLogin :one
+SELECT
+    uid,
+    login,
+    name,
+    avatar,
+    location,
+    bio,
+    followers,
+    following,
+    public_repos,
+    total_private_repos,
+    html_url
+FROM "user"
+WHERE
+    "user".login = $1;
 
 -- name: getProjectByProjectId :one
 SELECT
@@ -161,6 +218,7 @@ SELECT
     ) AS tag
 FROM project p
 WHERE p.projectid = $1;
+
 
 
 

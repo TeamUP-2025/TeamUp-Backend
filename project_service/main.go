@@ -44,5 +44,9 @@ func main() {
 		r.Get("/project", projectHandler.HandleSearchProject)
 		r.Get("/project/{projectId}", projectHandler.HandleGetProjectByID)
 	})
+
+	r.Get("/profile/{login}", projectHandler.HandleGetUserByLogin)
+	r.Get("/repos/{login}", projectHandler.HandleGetRepoByLogin)
+
 	http.ListenAndServe(":8080", r)
 }
