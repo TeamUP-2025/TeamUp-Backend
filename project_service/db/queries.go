@@ -95,6 +95,23 @@ func GetUserByLoginQuery(login string, databaseUrl string) (GetUserInfoByLoginRo
 	return queries.GetUserInfoByLogin(ctx, login)
 }
 
+func GetProjectById(projectId string, databaseUrl string) (getProjectByProjectIdRow, error) {
+	ctx := context.Background()
+
+	conn, err := pgx.Connect(ctx, databaseUrl)
+	if err != nil {
+		return getProjectByProjectIdRow{}, err
+	}
+	queries := New(conn)
+
+	uuid := pgtype.UUID{}
+	err = uuid.Scan(projectId)
+	if err != nil {
+		return getProjectByProjectIdRow{}, err
+	}
+	return queries.getProjectByProjectId(ctx, uuid)
+}
+
 func GetRepoByLoginQuery(login string, databaseUrl string) ([]Repo, error) {
 	ctx := context.Background()
 

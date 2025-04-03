@@ -42,6 +42,7 @@ func main() {
 
 	r.Group(func(r chi.Router) {
 		r.Get("/project", projectHandler.HandleSearchProject)
+		r.Get("/project/{projectId}", projectHandler.HandleGetProjectByID)
 	})
 
 	r.Get("/profile/{login}", projectHandler.HandleGetUserByLogin)

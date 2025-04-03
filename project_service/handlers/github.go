@@ -213,7 +213,7 @@ func (h *GithubHandler) GithubRecentRepoHandler(w http.ResponseWriter, r *http.R
 			Language:    repo.Language,
 			UpdatedAt:   updatedAt,
 		})
-		
+
 		if err != nil {
 			respondInternalServerError(w, err)
 			return

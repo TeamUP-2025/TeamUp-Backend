@@ -18,7 +18,7 @@ WHERE
     uid = $1
     AND last_updated > NOW() - INTERVAL '1 day'
 ORDER BY star DESC, updated_at DESC NULLS LAST
-LIMIT 4
+    LIMIT 4
 `
 
 func (q *Queries) GetCachedRepos(ctx context.Context, uid pgtype.UUID) ([]Repo, error) {
@@ -187,33 +187,29 @@ func (q *Queries) GetUserToken(ctx context.Context, uid pgtype.UUID) (string, er
 }
 
 const searchProjectByParameter = `-- name: SearchProjectByParameter :many
-SELECT 
-  p.projectId AS id,
-  p.title,
-  p.description,
-  p.status,
-  l.name AS license,
-  array_remove(array_agg(DISTINCT t.name), NULL) AS tags
+SELECT p.projectId                                    AS id,
+       p.title,
+       p.description,
+       p.status,
+       l.name                                         AS license,
+       array_remove(array_agg(DISTINCT t.name), NULL) AS tags
 FROM project p
-JOIN license l ON p.licenseId = l.licenseId
-LEFT JOIN "projectTag" pt ON p.projectId = pt.projectId
-LEFT JOIN tag t ON pt.tagId = t.tagId
-WHERE 1=1
+         JOIN license l ON p.licenseId = l.licenseId
+         LEFT JOIN "projectTag" pt ON p.projectId = pt.projectId
+         LEFT JOIN tag t ON pt.tagId = t.tagId
+WHERE 1 = 1
   AND (NULLIF($1::varchar, '') IS NULL OR p.title ILIKE '%' || $1 || '%')
   AND (NULLIF($2::varchar, '') IS NULL OR p.status = $2)
   AND (NULLIF($3::varchar, '') IS NULL OR l.name = $3)
   AND (
     CARDINALITY($4::text[]) = 0
-    OR 
-    p.projectId IN (
-      SELECT pt2.projectId
-      FROM "projectTag" pt2
-      JOIN tag t2 ON pt2.tagId = t2.tagId
-      WHERE t2.name = ANY($4::text[])
+        OR
+    p.projectId IN (SELECT pt2.projectId
+                    FROM "projectTag" pt2
+                             JOIN tag t2 ON pt2.tagId = t2.tagId
+                    WHERE t2.name = ANY ($4::text[]))
     )
-  )
-GROUP BY 
-  p.projectId, p.title, p.description, p.status, l.name
+GROUP BY p.projectId, p.title, p.description, p.status, l.name
 ORDER BY p.title
 `
 
@@ -441,8 +437,8 @@ SET
     following = $8,
     public_repos = $9,
     total_private_repos = $10,
-    html_url = $11 RETURNING uid,
-    name
+    html_url = $11
+    RETURNING uid, name
 `
 
 type UpsertUseAndReturnUidAndNameParams struct {
@@ -482,5 +478,85 @@ func (q *Queries) UpsertUseAndReturnUidAndName(ctx context.Context, arg UpsertUs
 	)
 	var i UpsertUseAndReturnUidAndNameRow
 	err := row.Scan(&i.Uid, &i.Name)
+	return i, err
+}
+
+const getProjectByProjectId = `-- name: getProjectByProjectId :one
+SELECT
+    p.projectid,
+    p.title,
+    p.description,
+    p.status,
+    (
+        SELECT json_agg(
+                       json_build_object(
+                               'licenseName', l.name,
+                               'description', l.description,
+                               'permission', l.permission,
+                               'condition', l.condition,
+                               'limitation', l.limitation
+                       )
+               )
+        FROM license l
+        WHERE l.licenseid = p.licenseid
+    ) AS license,
+    (
+        SELECT json_agg(
+                       json_build_object(
+                               'goalName', g.name,
+                               'goalDescription', g.description
+                       )
+               )
+        FROM goal g
+        WHERE g.projectid = p.projectid
+    ) AS goal,
+    (
+        SELECT json_agg(
+                       json_build_object(
+                               'roadmap', r.roadmap,
+                               'description', r.description,
+                               'status', r.status
+                       )
+               )
+        FROM roadmap r
+        WHERE r.projectid = p.projectid
+    ) AS roadmap,
+    (
+        SELECT ARRAY_AGG(
+
+                       t.name
+               )
+        FROM tag t
+                 JOIN "projectTag" pt ON pt.tagid = t.tagid
+        WHERE pt.projectid = p.projectid
+    ) AS tag
+FROM project p
+WHERE p.projectid = $1
+`
+
+type getProjectByProjectIdRow struct {
+	Projectid   pgtype.UUID
+	Title       string
+	Description string
+	Status      *string
+	License     []byte
+	Goal        []byte
+	Roadmap     []byte
+	Tag         interface{}
+}
+
+func (q *Queries) getProjectByProjectId(ctx context.Context, projectid pgtype.UUID) (getProjectByProjectIdRow, error) {
+	row := q.db.QueryRow(ctx, getProjectByProjectId, projectid)
+	var i getProjectByProjectIdRow
+	err := row.Scan(
+		&i.Projectid,
+		&i.Title,
+		&i.Description,
+		&i.Status,
+		&i.License,
+		&i.Goal,
+		&i.Roadmap,
+		&i.Tag,
+	)
 	return i, err
 }
