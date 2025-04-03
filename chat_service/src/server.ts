@@ -1,196 +1,324 @@
+// src/server.ts (adjust path as needed)
+
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import * as cookie from "cookie";
 import { createServer } from "http";
 import express from "express";
-import { EventEmitter } from "events"; // Import EventEmitter
-// Assuming you have Prisma initialized elsewhere
-// import { prisma } from './path/to/prisma/client';
+import { EventEmitter } from "events";
+// Import the database query functions (now using Drizzle)
+import { saveChatMessage, isUserTeamMember, getChatHistory } from "./db/db";
+ // Adjust path to your dbQueries file
 
 // --- Event Emitter Setup ---
 const serverEventEmitter = new EventEmitter();
 
-const JWT_SECRET = process.env.JWT_SECRET || "test";
+const JWT_SECRET = process.env.JWT_SECRET || "test"; // Use environment variable
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://localhost:3000", "192.168.1.50:3000"],
+    origin: process.env.CORS_ORIGIN?.split(",") || [
+      "http://localhost:3000",
+      "192.168.1.50:3000",
+      "http://10.6.38.142:3000"
+    ], // Allow multiple origins from env or default
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
 // --- Database Saving Listener ---
-// This listener handles the actual database interaction
+// This listener calls the Drizzle-based saveChatMessage function
 serverEventEmitter.on(
   "saveMessageToDb",
   async (payload: {
-    roomId: string;
-    userId: string;
+    roomId: string; // Corresponds to projectId
+    userId: string; // Corresponds to userLogin
     message: string;
     timestamp: Date;
   }) => {
     const { roomId, userId, message, timestamp } = payload;
     console.log(
-      `[DB Listener] Received event to save message for room ${roomId}, user ${userId}`,
+      `[Event Listener] Received 'saveMessageToDb' event for room ${roomId}, user ${userId}`
     );
     try {
-      // --- DATABASE SAVING LOGIC ---
-      // Uncomment and adapt this when your Prisma (or other DB client) is set up
-      /*
-        console.log(`[DB Listener] Saving message to DB: Room=${roomId}, User=${userId}, Msg=${message}`);
-        const savedMessage = await prisma.message.create({
-            data: {
-                content: message,
-                userId: userId, // Make sure this matches your schema's expected user identifier
-                roomId: roomId,
-                timestamp: timestamp // Store the timestamp
-            }
-        });
-        console.log(`[DB Listener] Message saved with ID: ${savedMessage.id}`);
-        */
-      // Simulate async DB operation
-      await new Promise((resolve) => setTimeout(resolve, 50)); // Simulate DB delay
-      console.log(
-        `[DB Listener] Successfully processed save for room ${roomId}, user ${userId}`,
-      );
-      // --- END DATABASE SAVING LOGIC ---
+      // Call the database function (now implemented with Drizzle)
+      await saveChatMessage(roomId, userId, message, timestamp);
+      // Logging is handled within saveChatMessage
     } catch (error) {
-      // Log the error thoroughly
       console.error(
-        `[DB Listener] Failed to save message for room ${roomId}, user ${userId}:`,
-        error,
+        `[Event Listener] Error occurred while trying to save message via dbQueries for room ${roomId}, user ${userId}:`,
+        error
       );
-      // Optional: Implement retry logic or send to a dead-letter queue here
     }
-  },
+  }
 );
 
 // --- Socket.IO Middleware (Authentication) ---
+// This middleware attempts to verify a JWT from cookies but allows connection regardless.
+// Authorization checks happen later (e.g., in joinRoom).
 io.use(async (socket, next) => {
-  // ... (keep your existing authentication middleware logic)
   try {
     const cookieHeader = socket.handshake.headers.cookie;
-    if (!cookieHeader) {
-      console.warn("Socket connected without authentication cookie.");
-      return next();
+    if (cookieHeader) {
+      const cookies = cookie.parse(cookieHeader);
+      const token = cookies.token; // Assuming your token cookie is named 'token'
+
+      if (token) {
+        // Verify the token
+        const decoded = jwt.verify(token, JWT_SECRET) as {
+          userId: string; // Assuming JWT payload has user's UUID (uid)
+          login: string; // Assuming JWT payload also has user's login
+          // Add other relevant fields from your JWT payload
+        };
+
+        // Store relevant authenticated user info on the socket for potential use
+        // IMPORTANT: Only store info you trust from the verified JWT
+        socket.data.authenticatedUserUid = decoded.userId;
+        socket.data.authenticatedUserLogin = decoded.login;
+
+        console.log(
+          `Socket ${socket.id} authenticated via JWT. User Login: ${decoded.login}, UID: ${decoded.userId}`
+        );
+      } else {
+        console.warn(`Socket ${socket.id} connected without 'token' cookie.`);
+      }
+    } else {
+      console.warn(`Socket ${socket.id} connected without cookies.`);
     }
-    const cookies = cookie.parse(cookieHeader);
-    if (!cookies.token) {
-      console.warn("Authentication token cookie not found.");
-      return next();
-    }
-    const decoded = jwt.verify(cookies.token, JWT_SECRET) as { userId: string };
-    socket.data.authenticatedUserId = decoded.userId;
-    next();
+    next(); // Allow connection even if unauthenticated
   } catch (error) {
-    console.error("JWT verification failed:", error);
+    // Handle invalid/expired tokens specifically
+    if (error instanceof jwt.JsonWebTokenError) {
+      console.warn(
+        `Socket ${socket.id} connection attempt with invalid JWT: ${error.message}`
+      );
+    } else if (error instanceof jwt.TokenExpiredError) {
+      console.warn(`Socket ${socket.id} connection attempt with expired JWT.`);
+    } else {
+      console.error("JWT verification middleware error:", error);
+    }
+    // Allow connection even if token is invalid/expired, authorization happens later
     next();
+    // If you wanted to *reject* invalid tokens:
+    // next(new Error("Authentication failed: Invalid token"));
   }
 });
 
 // --- Socket.IO Connection Logic ---
-io.on("connection", async (socket) => {
+io.on("connection", (socket) => {
   console.log(
-    `User connected: ${socket.id}, Auth User ID: ${socket.data.authenticatedUserId}`,
+    `User connected: ${socket.id}. Authenticated Login (from JWT): ${
+      socket.data.authenticatedUserLogin || "N/A"
+    }`
   );
 
   // Handle joining a chat room
-  socket.on("joinRoom", async (roomId, uid) => {
-    // ... (keep your existing joinRoom logic)
-    socket.data.userId = uid; // Using client-provided uid
+  socket.on("joinRoom", async (roomId: string, userLogin: string) => {
+    // userLogin is provided by the client (e.g., from auth context)
+    console.log(
+      `Attempting join: Socket ${socket.id}, User Login (from client): ${userLogin}, Room: ${roomId}`
+    );
+
+    // Optional: Verify client-provided login against authenticated login from JWT if available
+    if (
+      socket.data.authenticatedUserLogin &&
+      socket.data.authenticatedUserLogin !== userLogin
+    ) {
+      console.warn(
+        `Join attempt mismatch: Socket ${socket.id} authenticated as ${socket.data.authenticatedUserLogin} but trying to join as ${userLogin}. Denying join.`
+      );
+      socket.emit(
+        "error",
+        "Authorization mismatch. Please refresh and try again."
+      );
+      return;
+    }
 
     try {
+      // --- Permission Check using Drizzle function ---
+      //   const canJoin = await isUserTeamMember(roomId, userLogin);
+      //   if (!canJoin) {
+      //     console.warn(
+      //       `Join rejected: User ${userLogin} is not a team member of project ${roomId}.`,
+      //     );
+      //     socket.emit("error", "You are not authorized to join this chat room.");
+      //     return;
+      //   }
+      // --- End Permission Check ---
+
+      // Store the user's login on the socket for identifying the sender in this session
+      // We trust userLogin now because we've either verified it against JWT or checked membership
+      socket.data.userLogin = userLogin;
+
+      // Leave other rooms the socket might be in (optional, depends on desired behavior)
+      // socket.rooms.forEach(room => {
+      //   if (room !== socket.id) {
+      //     socket.leave(room);
+      //   }
+      // });
+
       socket.join(roomId);
-      console.log(`Socket ${socket.id} (User ${uid}) joined room ${roomId}`);
-      socket.broadcast
-        .to(roomId)
-        .emit("message", {
-          userId: "system",
-          message: `User ${uid} has joined the room`,
-          timestamp: new Date(),
-        });
+      console.log(
+        `Socket ${socket.id} (User Login: ${userLogin}) successfully joined room ${roomId}`
+      );
+
+      // Emit event to client confirming successful join
+      socket.emit("joinedRoom", roomId);
+      console.log(
+        `Emitted 'joinedRoom' confirmation to ${userLogin} for room ${roomId}`
+      );
+
+      // Notify others in the room
+      socket.broadcast.to(roomId).emit("message", {
+        userId: "system", // System message
+        message: `User ${userLogin} has joined the room`,
+        timestamp: new Date(),
+      });
     } catch (error) {
-      console.error(`Error joining room ${roomId} for user ${uid}:`, error);
-      socket.emit("error", "Failed to join room");
+      console.error(
+        `Error during joinRoom for user ${userLogin}, room ${roomId}:`,
+        error
+      );
+      socket.emit("error", "Failed to join room due to an internal error.");
     }
   });
 
-  // Handle chat messages in rooms
-  socket.on("chatMessage", async ({ roomId, message }) => {
-    // Basic validation
-    if (!socket.data.userId) {
-      console.error(
-        `User ${socket.id} tried to send message without userId in room ${roomId}`,
+  // --- History Request Handler ---
+  socket.on(
+    "requestHistory",
+    async ({
+      roomId,
+      beforeTimestamp,
+    }: {
+      roomId: string;
+      beforeTimestamp?: string | null;
+    }) => {
+      // Use the userLogin stored on the socket from the successful join
+      const userLogin = socket.data.userLogin;
+      console.log(
+        `[History Request] Received from ${
+          userLogin || "Unknown User"
+        } (Socket ${socket.id}) for room ${roomId}, before: ${beforeTimestamp}`
       );
-      return socket.emit(
-        "error",
-        "Cannot send message: User identity not set.",
+
+      // Validate user has joined this room and has an associated login
+      if (!socket.rooms.has(roomId) || !userLogin) {
+        console.warn(
+          `[History Request] Denied: User ${userLogin || "N/A"} (Socket ${
+            socket.id
+          }) not authorized or not in room ${roomId}.`
+        );
+        socket.emit(
+          "error",
+          "Cannot fetch history: Not authorized for this room."
+        );
+        return;
+      }
+
+      try {
+        const beforeDate = beforeTimestamp ? new Date(beforeTimestamp) : null;
+
+        // Fetch history using the Drizzle-based dbQuery function
+        const historyData = await getChatHistory(roomId, beforeDate, 20); // Fetch 20 messages
+
+        // Send history back *only* to the requesting client
+        socket.emit("chatHistory", {
+          roomId: roomId,
+          messages: historyData.messages,
+          hasMore: historyData.hasMore,
+        });
+        console.log(
+          `[History Request] Sent ${historyData.messages.length} messages to ${userLogin} for room ${roomId}. Has More: ${historyData.hasMore}`
+        );
+      } catch (error) {
+        console.error(
+          `[History Request] Error fetching history for room ${roomId}, user ${userLogin}:`,
+          error
+        );
+        socket.emit("error", "Failed to load chat history.");
+      }
+    }
+  );
+
+  // --- Handle Chat Messages ---
+  socket.on(
+    "chatMessage",
+    async ({ roomId, message }: { roomId: string; message: string }) => {
+      // Use the userLogin stored on the socket data from the successful join
+      const userLogin = socket.data.userLogin;
+
+      // Basic validation
+      if (!userLogin) {
+        console.error(
+          `User ${socket.id} tried to send message without userLogin identifier in room ${roomId}`
+        );
+        return socket.emit(
+          "error",
+          "Cannot send message: User identity not set. Please rejoin."
+        );
+      }
+      if (!socket.rooms.has(roomId)) {
+        console.error(
+          `User ${socket.id} (${userLogin}) tried to send message to room ${roomId} they haven't joined.`
+        );
+        return socket.emit(
+          "error",
+          "Cannot send message: You are not in this room."
+        );
+      }
+
+      const timestamp = new Date();
+
+      // 1. Prepare the message payload for clients
+      const messagePayload = {
+        userId: userLogin, // Use the login string as the identifier
+        message: message,
+        timestamp: timestamp,
+      };
+
+      // 2. Emit the internal event for database saving (asynchronous)
+      serverEventEmitter.emit("saveMessageToDb", {
+        roomId: roomId,
+        userId: userLogin, // Pass the login string
+        message: message,
+        timestamp: timestamp,
+      });
+      // Logging for this step is now inside the listener
+
+      // 3. Broadcast the message to all clients in the room (including sender)
+      io.to(roomId).emit("message", messagePayload);
+      console.log(
+        `[chatMessage] Broadcasted message to room ${roomId}: User=${userLogin}, Msg=${message}`
       );
     }
-    if (!socket.rooms.has(roomId)) {
-      console.error(
-        `User ${socket.id} (User ${socket.data.userId}) tried to send message to room ${roomId} they haven't joined.`,
-      );
-      return socket.emit(
-        "error",
-        "Cannot send message: You are not in this room.",
-      );
-    }
+  );
 
-    const userId = socket.data.userId;
-    const timestamp = new Date();
-
-    // 1. Prepare the message payload
-    const messagePayload = {
-      userId: userId,
-      message: message,
-      timestamp: timestamp,
-      // Include roomId in the internal event payload, but not necessarily in the client-facing one
-      // unless your client needs it directly on the message object.
-    };
-
-    // 2. Emit the internal event for database saving (asynchronous)
-    serverEventEmitter.emit("saveMessageToDb", {
-      ...messagePayload,
-      roomId: roomId, // Ensure roomId is passed to the listener
-    });
-    console.log(
-      `[chatMessage] Emitted 'saveMessageToDb' event for room ${roomId}, user ${userId}`,
-    );
-
-    // 3. Broadcast the message to clients immediately
-    // We use messagePayload which doesn't necessarily need the roomId inside it for the client
-    io.to(roomId).emit("message", messagePayload);
-    console.log(
-      `[chatMessage] Broadcasted message to room ${roomId}: User=${userId}, Msg=${message}`,
-    );
-
-    // Note: Error handling for the *emit* itself is less common.
-    // The main error handling happens in the listener.
-  });
-
-  // Handle disconnection
+  // --- Handle Disconnection ---
   socket.on("disconnect", (reason) => {
-    // ... (keep your existing disconnect logic)
+    const userLogin = socket.data.userLogin; // Get the login if stored during join
     console.log(
-      `User disconnected: ${socket.id}, User ID: ${socket.data.userId}, Reason: ${reason}`,
+      `User disconnected: ${socket.id}, User Login: ${
+        userLogin || "N/A"
+      }, Reason: ${reason}`
     );
+    // Notify rooms the user was in
     socket.rooms.forEach((roomId) => {
-      if (roomId !== socket.id && socket.data.userId) {
+      // socket.rooms includes the socket's own ID room, skip it
+      if (roomId !== socket.id && userLogin) {
         io.to(roomId).emit("message", {
           userId: "system",
-          message: `User ${socket.data.userId} has left the room`,
+          message: `User ${userLogin} has left the room`,
           timestamp: new Date(),
         });
+        console.log(`Notified room ${roomId} about ${userLogin} leaving.`);
       }
     });
   });
-
-  // ... (keep debug listeners if needed)
 });
 
+// --- Start Server ---
 const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
   console.log(`Socket.IO server listening on port ${PORT}`);
