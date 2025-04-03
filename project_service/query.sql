@@ -2,22 +2,18 @@
 -- SELECT * FROM user;
 
 -- name: UpsertUseAndReturnUidAndName :one
-INSERT INTO
-    "user" (
-        login,
-        name,
-        avatar,
-        location,
-        token,
-        bio,
-        followers,
-        following,
-        public_repos,
-        total_private_repos,
-        html_url
-    )
-VALUES (
-        $1,
+INSERT INTO "user" (login,
+                    name,
+                    avatar,
+                    location,
+                    token,
+                    bio,
+                    followers,
+                    following,
+                    public_repos,
+                    total_private_repos,
+                    html_url)
+VALUES ($1,
         $2,
         $3,
         $4,
@@ -27,11 +23,10 @@ VALUES (
         $8,
         $9,
         $10,
-        $11
-    ) ON CONFLICT (login) DO
+        $11) ON CONFLICT (login) DO
 UPDATE
-SET
-    token = $5,
+    SET
+        token = $5,
     location = $4,
     avatar = $3,
     name = $2,
@@ -44,21 +39,21 @@ SET
     RETURNING uid, name;
 
 -- name: GetUserToken :one
-SELECT token FROM "user" WHERE uId = $1;
+SELECT token
+FROM "user"
+WHERE uId = $1;
 
 -- name: GetUserProfile :one
 SELECT *
 FROM "user"
-WHERE
-    uid = $1
-    AND last_updated > NOW() - INTERVAL '1 day';
+WHERE uid = $1
+  AND last_updated > NOW() - INTERVAL '1 day';
 
 -- name: GetCachedRepos :many
 SELECT *
 FROM repo
-WHERE
-    uid = $1
-    AND last_updated > NOW() - INTERVAL '1 day'
+WHERE uid = $1
+  AND last_updated > NOW() - INTERVAL '1 day'
 ORDER BY star DESC, updated_at DESC NULLS LAST
     LIMIT 4;
 
@@ -66,35 +61,29 @@ ORDER BY star DESC, updated_at DESC NULLS LAST
 
 -- name: UpdateUserProfile :one
 UPDATE "user"
-SET
-    name = $2,
-    avatar = $3,
-    location = $4,
-    bio = $5,
-    followers = $6,
-    following = $7,
-    public_repos = $8,
+SET name                = $2,
+    avatar              = $3,
+    location            = $4,
+    bio                 = $5,
+    followers           = $6,
+    following           = $7,
+    public_repos        = $8,
     total_private_repos = $9,
-    html_url = $10,
-    last_updated = CURRENT_TIMESTAMP
-WHERE
-    uid = $1 RETURNING *;
+    html_url            = $10,
+    last_updated        = CURRENT_TIMESTAMP
+WHERE uid = $1 RETURNING *;
 
 -- name: UpsertRepo :one
-INSERT INTO
-    repo (
-        uid,
-        name,
-        url,
-        description,
-        star,
-        fork,
-        language,
-        updated_at,
-        last_updated
-    )
-VALUES (
-        $1,
+INSERT INTO repo (uid,
+                  name,
+                  url,
+                  description,
+                  star,
+                  fork,
+                  language,
+                  updated_at,
+                  last_updated)
+VALUES ($1,
         $2,
         $3,
         $4,
@@ -102,11 +91,10 @@ VALUES (
         $6,
         $7,
         $8,
-        CURRENT_TIMESTAMP
-    ) ON CONFLICT (uid, name) DO
+        CURRENT_TIMESTAMP) ON CONFLICT (uid, name) DO
 UPDATE
-SET
-    description = $4,
+    SET
+        description = $4,
     star = $5,
     fork = $6,
     language = $7,
@@ -142,39 +130,32 @@ ORDER BY p.title;
 -- name: GetRepoByLogin :many
 SELECT *
 FROM "repo"
-WHERE uid in (
-  SELECT uid
-  FROM "user"
-  WHERE "user".login = $1
-)
-ORDER BY star DESC, updated_at DESC NULLS LAST
-LIMIT 4;
+WHERE uid in (SELECT uid
+              FROM "user"
+              WHERE "user".login = $1)
+ORDER BY star DESC, updated_at DESC NULLS LAST LIMIT 4;
 
 -- name: GetUserInfoByLogin :one
-SELECT
-    uid,
-    login,
-    name,
-    avatar,
-    location,
-    bio,
-    followers,
-    following,
-    public_repos,
-    total_private_repos,
-    html_url
+SELECT uid,
+       login,
+       name,
+       avatar,
+       location,
+       bio,
+       followers,
+       following,
+       public_repos,
+       total_private_repos,
+       html_url
 FROM "user"
-WHERE
-    "user".login = $1;
+WHERE "user".login = $1;
 
 -- name: getProjectByProjectId :one
-SELECT
-    p.projectid,
-    p.title,
-    p.description,
-    p.status,
-    (
-        SELECT json_agg(
+SELECT p.projectid,
+       p.title,
+       p.description,
+       p.status,
+       (SELECT json_agg(
                        json_build_object(
                                'licenseName', l.name,
                                'description', l.description,
@@ -184,20 +165,16 @@ SELECT
                        )
                )
         FROM license l
-        WHERE l.licenseid = p.licenseid
-    ) AS license,
-    (
-        SELECT json_agg(
+        WHERE l.licenseid = p.licenseid)  AS license,
+       (SELECT json_agg(
                        json_build_object(
                                'goalName', g.name,
                                'goalDescription', g.description
                        )
                )
         FROM goal g
-        WHERE g.projectid = p.projectid
-    ) AS goal,
-    (
-        SELECT json_agg(
+        WHERE g.projectid = p.projectid)  AS goal,
+       (SELECT json_agg(
                        json_build_object(
                                'roadmap', r.roadmap,
                                'description', r.description,
@@ -205,37 +182,38 @@ SELECT
                        )
                )
         FROM roadmap r
-        WHERE r.projectid = p.projectid
-    ) AS roadmap,
-    (
-        SELECT ARRAY_AGG(
-
+        WHERE r.projectid = p.projectid)  AS roadmap,
+       (SELECT ARRAY_AGG(
                        t.name
                )
         FROM tag t
                  JOIN "projectTag" pt ON pt.tagid = t.tagid
-        WHERE pt.projectid = p.projectid
-    ) AS tag
+        WHERE pt.projectid = p.projectid) AS tag
 FROM project p
 WHERE p.projectid = $1;
 
 
+-- name: updateProjectTitleDescription :exec
+UPDATE "project"
+SET title       = $2,
+    description = $3
+WHERE projectid = $1;
 
+-- name: deleteExistingProjectTag :exec
+DELETE
+FROM "projectTag"
+WHERE projectid = $1;
 
--- -- name: UpdateProjectWithTags :exec
--- -- update project title and description
--- UPDATE "project"
--- SET
---     title = $2,
---     description = $3
--- WHERE projectid = $1;
---
--- -- delete tags that registered to the project
--- DELETE FROM "projectTag"
--- WHERE projectid = $1;
---
--- -- Register new tags to the project
--- INSERT INTO "projectTag" (projectid, tagid)
--- SELECT $1, tag.tagid
--- FROM "tag"
--- WHERE tag.tagname = ANY($4::varchar[])
+-- name: insertNewTagIfNotExisting :exec
+INSERT INTO "tag" (name)
+SELECT new_tags.name
+FROM unnest($1) AS new_tags(name)
+WHERE NOT EXISTS (SELECT 1
+                  FROM "tag" t
+                  WHERE t.name = new_tags.name);
+
+-- name: insertNewTagsToProjectTag :exec
+INSERT INTO "projectTag" (projectid, tagid)
+SELECT projectid, t.tagid
+FROM "tag" t
+WHERE t.name = ANY ($1);
