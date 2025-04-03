@@ -3,19 +3,23 @@
   "version": "1.0.0",
   "description": "",
   "main": "dist/server.js",
-  "scripts": {
-    "start": "node --env-file=.env --experimental-strip-types --watch-path src src/server.ts",
-    "lint": "eslint . --ext .ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+ "scripts": {
+   "start": "tsx --env-file=.env --watch src/server.ts",
+   "lint": "eslint . --ext .ts",
+   "test": "echo \"Error: no test specified\" && exit 1"
+
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@eslint/js": "^9.23.0",
+    "@types/pg": "^8.11.11",
+    "drizzle-kit": "^0.30.6",
     "eslint": "^9.23.0",
     "globals": "^16.0.0",
     "nodemon": "^3.1.9",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.28.0"
   },
@@ -24,10 +28,14 @@
     "utf-8-validate": "^6.0.5"
   },
   "dependencies": {
+    "@prisma/client": "^6.5.0",
     "@types/express": "^5.0.1",
     "cookie": "^1.0.2",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.41.0",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
+    "pg": "^8.14.1",
     "socket.io": "^4.8.1"
   }
 }
