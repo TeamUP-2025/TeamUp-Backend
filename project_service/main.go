@@ -40,9 +40,10 @@ func main() {
 		r.Get("/git/repos", githubHandler.GithubRecentRepoHandler)
 	})
 
-	r.Group(func(r chi.Router) {
-		r.Get("/project", projectHandler.HandleSearchProject)
-		r.Get("/project/{projectId}", projectHandler.HandleGetProjectByID)
+	r.Route("/project",func(r chi.Router) {
+		r.Get("/", projectHandler.HandleSearchProject)
+		r.Get("/{projectId}", projectHandler.HandleGetProjectByID)
+		r.Post("/{projectId}/join", projectHandler.HandlerCreateApplication)
 	})
 
 	r.Get("/profile/{login}", projectHandler.HandleGetUserByLogin)
