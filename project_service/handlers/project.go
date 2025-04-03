@@ -123,3 +123,14 @@ func (h *ProjectHandler) HandlerCreateApplication(w http.ResponseWriter, r *http
 
 	w.Write(responseJson)
 }
+
+func (h *ProjectHandler) HandlerUpdateProject(w http.ResponseWriter, r *http.Request) {
+	err := db.UpdateProjectDetailWithTag(r, h.databaseUrl)
+
+	if err != nil {
+		respondInternalServerError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
