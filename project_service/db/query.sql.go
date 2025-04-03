@@ -504,7 +504,7 @@ type UpsertUseAndReturnUidAndNameRow struct {
 	Name string
 }
 
-// - name: getAllUser :many
+//- name: getAllUser :many
 // SELECT * FROM user;
 func (q *Queries) UpsertUseAndReturnUidAndName(ctx context.Context, arg UpsertUseAndReturnUidAndNameParams) (UpsertUseAndReturnUidAndNameRow, error) {
 	row := q.db.QueryRow(ctx, upsertUseAndReturnUidAndName,
@@ -614,26 +614,31 @@ func (q *Queries) getProjectByProjectId(ctx context.Context, projectid pgtype.UU
 const insertNewTagIfNotExisting = `-- name: insertNewTagIfNotExisting :exec
 INSERT INTO "tag" (name)
 SELECT new_tags.name
-FROM unnest($1) AS new_tags(name)
+FROM unnest($1::varchar[]) AS new_tags(name)
 WHERE NOT EXISTS (SELECT 1
                   FROM "tag" t
                   WHERE t.name = new_tags.name)
 `
 
-func (q *Queries) insertNewTagIfNotExisting(ctx context.Context, unnest interface{}) error {
-	_, err := q.db.Exec(ctx, insertNewTagIfNotExisting, unnest)
+func (q *Queries) insertNewTagIfNotExisting(ctx context.Context, dollar_1 []string) error {
+	_, err := q.db.Exec(ctx, insertNewTagIfNotExisting, dollar_1)
 	return err
 }
 
 const insertNewTagsToProjectTag = `-- name: insertNewTagsToProjectTag :exec
 INSERT INTO "projectTag" (projectid, tagid)
-SELECT projectid, t.tagid
+SELECT $1, t.tagid
 FROM "tag" t
-WHERE t.name = ANY ($1)
+WHERE t.name = ANY ($2::varchar[])
 `
 
-func (q *Queries) insertNewTagsToProjectTag(ctx context.Context, name string) error {
-	_, err := q.db.Exec(ctx, insertNewTagsToProjectTag, name)
+type insertNewTagsToProjectTagParams struct {
+	Projectid pgtype.UUID
+	Column2   []string
+}
+
+func (q *Queries) insertNewTagsToProjectTag(ctx context.Context, arg insertNewTagsToProjectTagParams) error {
+	_, err := q.db.Exec(ctx, insertNewTagsToProjectTag, arg.Projectid, arg.Column2)
 	return err
 }
 

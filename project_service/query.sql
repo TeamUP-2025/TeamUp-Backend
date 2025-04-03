@@ -249,13 +249,13 @@ WHERE projectid = $1;
 -- name: insertNewTagIfNotExisting :exec
 INSERT INTO "tag" (name)
 SELECT new_tags.name
-FROM unnest($1) AS new_tags(name)
+FROM unnest($1::varchar[]) AS new_tags(name)
 WHERE NOT EXISTS (SELECT 1
                   FROM "tag" t
                   WHERE t.name = new_tags.name);
 
 -- name: insertNewTagsToProjectTag :exec
 INSERT INTO "projectTag" (projectid, tagid)
-SELECT projectid, t.tagid
+SELECT $1, t.tagid
 FROM "tag" t
-WHERE t.name = ANY ($1);
+WHERE t.name = ANY ($2::varchar[]);
