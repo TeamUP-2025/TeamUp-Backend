@@ -117,7 +117,7 @@ func (h *ProjectHandler) HandlerCreateApplication(w http.ResponseWriter, r *http
 		respondInternalServerError(w, err)
 		return
 	}
-	
+
 	fmt.Println(insertStatus)
 	fmt.Println(responseJson)
 
