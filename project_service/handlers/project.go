@@ -2,11 +2,17 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/go-chi/chi/v5"
+	"fmt"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/TeamUP-2025/TeamUp-Backend/db"
 )
+
+type ApplicationReponse struct {
+	GOOD int
+}
 
 type ProjectHandler struct {
 	databaseUrl string
@@ -94,4 +100,26 @@ func (h *ProjectHandler) HandleGetRepoByLogin(w http.ResponseWriter, r *http.Req
 	}
 
 	w.Write(repoJson)
+}
+
+func (h *ProjectHandler) HandlerCreateApplication(w http.ResponseWriter, r *http.Request) {
+
+	insertStatus, err := db.InsertIntoApplicationQuery(r, h.databaseUrl)
+
+	if err != nil {
+		respondInternalServerError(w, err)
+		return
+	}
+
+	responseJson, err := json.Marshal(insertStatus)
+
+	if err != nil {
+		respondInternalServerError(w, err)
+		return
+	}
+	
+	fmt.Println(insertStatus)
+	fmt.Println(responseJson)
+
+	w.Write(responseJson)
 }

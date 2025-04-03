@@ -9,6 +9,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type ApplicationRequest struct {
+	ProjectId   string `json:"projectId"`
+	CoverLetter string `json:"coverLetter"`
+	UId         string `json:"uId"`
+}
+
 func UpsertUserQuery(data UpsertUseAndReturnUidAndNameParams, databaseUrl string) (UpsertUseAndReturnUidAndNameRow, error) {
 	ctx := context.Background()
 
@@ -80,7 +86,7 @@ func SearchProjectByParameterQuery(r *http.Request, databaseUrl string) ([]Searc
 
 }
 
-func GetUserByLoginQuery(login string, databaseUrl string) (GetUserInfoByLoginRow ,error) {
+func GetUserByLoginQuery(login string, databaseUrl string) (GetUserInfoByLoginRow, error) {
 	ctx := context.Background()
 
 	conn, err := pgx.Connect(ctx, databaseUrl)
@@ -126,3 +132,5 @@ func GetRepoByLoginQuery(login string, databaseUrl string) ([]Repo, error) {
 
 	return queries.GetRepoByLogin(ctx, login)
 }
+
+
