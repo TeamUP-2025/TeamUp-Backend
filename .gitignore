@@ -4,3 +4,4 @@ TeamUp-Backend
 chat_service/node_modules/*
 chat_service/dist
 .idea
+generated/prisma/
