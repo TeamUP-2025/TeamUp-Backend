@@ -7,7 +7,7 @@ import { createServer } from "http";
 import express from "express";
 import { EventEmitter } from "events";
 // Import the database query functions (now using Drizzle)
-import { saveChatMessage, isUserTeamMember, getChatHistory } from "./db/db";
+import { saveChatMessage, getChatHistory } from "./db/db";
  // Adjust path to your dbQueries file
 
 // --- Event Emitter Setup ---
@@ -137,27 +137,11 @@ io.on("connection", (socket) => {
     }
 
     try {
-      // --- Permission Check using Drizzle function ---
-      //   const canJoin = await isUserTeamMember(roomId, userLogin);
-      //   if (!canJoin) {
-      //     console.warn(
-      //       `Join rejected: User ${userLogin} is not a team member of project ${roomId}.`,
-      //     );
-      //     socket.emit("error", "You are not authorized to join this chat room.");
-      //     return;
-      //   }
-      // --- End Permission Check ---
 
       // Store the user's login on the socket for identifying the sender in this session
       // We trust userLogin now because we've either verified it against JWT or checked membership
       socket.data.userLogin = userLogin;
 
-      // Leave other rooms the socket might be in (optional, depends on desired behavior)
-      // socket.rooms.forEach(room => {
-      //   if (room !== socket.id) {
-      //     socket.leave(room);
-      //   }
-      // });
 
       socket.join(roomId);
       console.log(
