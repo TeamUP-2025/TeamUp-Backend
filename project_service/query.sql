@@ -319,7 +319,7 @@ SELECT donation.created_at, donation.amount,
 FROM donation
          JOIN "user" ON "user".uid = donation.uid
          JOIN project ON project.projectid = donation.projectid
-WHERE donation.projectid = $1
+WHERE donation.projectid = $1;
 
 -- name: getTotalProjectDonationByProjectID :one
 SELECT SUM(donation.amount)
@@ -327,7 +327,7 @@ FROM donation
          JOIN "user" ON "user".uid = donation.uid
          JOIN project ON project.projectid = donation.projectid
 WHERE donation.projectid = $1
-GROUP BY donation.projectid
+GROUP BY donation.projectid;
 
 -- name: insertNewDonation :exec
 INSERT INTO donation (uid, projectid, amount)
