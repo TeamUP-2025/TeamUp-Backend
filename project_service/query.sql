@@ -260,7 +260,7 @@ SELECT $1, t.tagid
 FROM "tag" t
 WHERE t.name = ANY ($2::varchar[]);
 
--- name: deleteApplication: exec
+-- name: deleteApplication :exec
 DELETE
 FROM application
 WHERE uid = $2 AND projectid = $1;
