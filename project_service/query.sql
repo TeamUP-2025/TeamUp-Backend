@@ -33,6 +33,8 @@ SELECT $1,
     UNNEST($2::varchar[]),
     UNNEST($3::varchar[]);
 
+-- name: GetRepoByUid :many
+SELECT * FROM repo WHERE uid = $1;
 
 -- name: UpsertUseAndReturnUidAndName :one
 INSERT INTO

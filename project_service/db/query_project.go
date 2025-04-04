@@ -4,13 +4,45 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-
+	"strings"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/golang-jwt/jwt/v5"
 )
 
+func SearchProjectByParameterQuery(r *http.Request, databaseUrl string) ([]SearchProjectByParameterRow, error) {
+	// Parse query parameters
+	query := r.URL.Query()
+	title := query.Get("title")
+	status := query.Get("status")
+	licenseName := query.Get("licenseName")
+	tagNames := make([]string, 0)
+	if tagNamesParam := query.Get("tagNames"); tagNamesParam != "" {
+		tagNames = strings.Split(tagNamesParam, ",")
+	}
 
+	// Connect to database
+	ctx := r.Context()
+	conn, err := pgx.Connect(ctx, databaseUrl)
+	if err != nil {
+		return []SearchProjectByParameterRow{}, err
+	}
+	defer conn.Close(ctx)
+
+	// Create query instance
+	queries := New(conn)
+
+	// Execute search query
+	return queries.SearchProjectByParameter(ctx,
+		SearchProjectByParameterParams{
+			Column1: title,
+			Column2: status,
+			Column3: licenseName,
+			Column4: tagNames,
+		},
+	)
+
+}
 
 func CreateProject(r *http.Request, databaseUrl string) (string, error) {
 

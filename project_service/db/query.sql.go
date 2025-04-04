@@ -123,6 +123,41 @@ func (q *Queries) GetRepoByLogin(ctx context.Context, login string) ([]Repo, err
 	return items, nil
 }
 
+const getRepoByUid = `-- name: GetRepoByUid :many
+SELECT repoid, uid, name, url, description, star, fork, last_updated, language, updated_at FROM repo WHERE uid = $1
+`
+
+func (q *Queries) GetRepoByUid(ctx context.Context, uid pgtype.UUID) ([]Repo, error) {
+	rows, err := q.db.Query(ctx, getRepoByUid, uid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Repo
+	for rows.Next() {
+		var i Repo
+		if err := rows.Scan(
+			&i.Repoid,
+			&i.Uid,
+			&i.Name,
+			&i.Url,
+			&i.Description,
+			&i.Star,
+			&i.Fork,
+			&i.LastUpdated,
+			&i.Language,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUserInfoByLogin = `-- name: GetUserInfoByLogin :one
 SELECT
     uid,

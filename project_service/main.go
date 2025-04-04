@@ -29,6 +29,10 @@ func main() {
 		cfg.DatabaseURL,
 	)
 
+	repoHandler := handlers.NewRepoHandler(
+		cfg.DatabaseURL,
+	)
+
 	r.Group(func(r chi.Router) {
 		r.Get("/auth/github", authHandler.HandleGithubLogin)
 		r.Get("/auth/github/callback", authHandler.HandleGithubCallback)
@@ -38,6 +42,7 @@ func main() {
 		r.Use(middleware.UserOnly(cfg))
 		r.Get("/git/profile", githubHandler.GithubProfileHandler)
 		r.Get("/git/repos", githubHandler.GithubRecentRepoHandler)
+		r.Get("/repos/uid", repoHandler.HandleGetRepoByUid)
 	})
 
 	r.Route("/project", func(r chi.Router) {
