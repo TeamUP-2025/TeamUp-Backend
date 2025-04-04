@@ -151,6 +151,27 @@ func CreateProject(r *http.Request, databaseUrl string) (string, error) {
 	return projectId.String(), nil
 }
 
+func GetProjectByMemberStatus(r *http.Request, databaseUrl string) ([]GetProjectByMemberStatusRow, error) {
+
+	ctx := r.Context()
+	claims := ctx.Value("token").(jwt.MapClaims)
+	uid := claims["uid"].(string)
+	
+	conn, err := pgx.Connect(context.Background(), databaseUrl)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close(context.Background())
+	
+	queries := New(conn)
+
+	uuid := pgtype.UUID{}
+	if err := uuid.Scan(uid); err != nil {
+		return nil, err
+	}
+
+	return queries.GetProjectByMemberStatus(context.Background(),  uuid)
+}
 
 type CreateProjectRequest struct {
 	Title string `json:"title"`

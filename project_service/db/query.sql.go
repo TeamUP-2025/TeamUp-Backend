@@ -76,6 +76,51 @@ func (q *Queries) GetCachedRepos(ctx context.Context, uid pgtype.UUID) ([]Repo, 
 	return items, nil
 }
 
+const getProjectByMemberStatus = `-- name: GetProjectByMemberStatus :many
+SELECT p.projectid, p.title, p.description, p.status, p.repoId, p.licenseId, tm.role
+FROM project p
+JOIN teammember tm ON p.projectid = tm.projectid
+WHERE tm.uid = $1
+`
+
+type GetProjectByMemberStatusRow struct {
+	Projectid   pgtype.UUID
+	Title       string
+	Description string
+	Status      *string
+	Repoid      pgtype.UUID
+	Licenseid   pgtype.UUID
+	Role        string
+}
+
+func (q *Queries) GetProjectByMemberStatus(ctx context.Context, uid pgtype.UUID) ([]GetProjectByMemberStatusRow, error) {
+	rows, err := q.db.Query(ctx, getProjectByMemberStatus, uid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetProjectByMemberStatusRow
+	for rows.Next() {
+		var i GetProjectByMemberStatusRow
+		if err := rows.Scan(
+			&i.Projectid,
+			&i.Title,
+			&i.Description,
+			&i.Status,
+			&i.Repoid,
+			&i.Licenseid,
+			&i.Role,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRepoByLogin = `-- name: GetRepoByLogin :many
 SELECT repoid, uid, name, url, description, star, fork, last_updated, language, updated_at
 FROM "repo"

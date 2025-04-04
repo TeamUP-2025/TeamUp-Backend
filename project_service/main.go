@@ -46,15 +46,16 @@ func main() {
 	})
 
 	r.Route("/project", func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.UserOnly(cfg))
+			r.Post("/create", projectHandler.HandlerCreateProject)
+			r.Get("/project/member", projectHandler.HandleGetProjectByMemberStatus)
+		})
 		r.Get("/", projectHandler.HandleSearchProject)
 		r.Get("/{projectId}", projectHandler.HandleGetProjectByID)
 		r.Get("/repo/{projectId}", repoHandler.HandleGetRepoByProjectID)
 		r.Post("/{projectId}/join", projectHandler.HandlerCreateApplication)
 		r.Post("/update", projectHandler.HandlerUpdateProject)
-		r.Group(func(r chi.Router) {
-			r.Use(middleware.UserOnly(cfg))
-			r.Post("/create", projectHandler.HandlerCreateProject)
-		})
 		r.Post("/update/teammember", projectHandler.HandlerUpdateTeamMemberRole)
 		r.Post("/delete/teammember", projectHandler.HandlerDeleteTeamMember)
 		r.Post("/approve/application", projectHandler.HandlerApproveApplication)
