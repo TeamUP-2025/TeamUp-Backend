@@ -62,8 +62,8 @@ func main() {
 		r.Get("/{projectId}/team", projectHandler.HandleGetTeamByProjectID)
 		r.Post("/update/teammember", projectHandler.HandlerUpdateTeamMemberRole)
 		r.Post("/delete/teammember", projectHandler.HandlerDeleteTeamMember)
-		r.Post("/approve/application", projectHandler.HandlerApproveApplication)
-		r.Post("/deny/application", projectHandler.HandlerDenyApplication)
+		r.Post("/application/approve", projectHandler.HandlerApproveApplication)
+		r.Post("/application/deny", projectHandler.HandlerDenyApplication)
 	})
 
 	r.Route("/repo", func(r chi.Router) {

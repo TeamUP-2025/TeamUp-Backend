@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/http"
+
 	"github.com/TeamUP-2025/TeamUp-Backend/db"
 	"github.com/go-chi/chi/v5"
-	"net/http"
 )
 
 func (h *ProjectHandler) HandlerUpdateTeamMemberRole(w http.ResponseWriter, r *http.Request) {
@@ -66,8 +68,8 @@ func (h *ProjectHandler) HandlerGetApplicationByProjectID(w http.ResponseWriter,
 }
 
 func (h *ProjectHandler) HandleGetTeamByProjectID(w http.ResponseWriter, r *http.Request) {
-	team, err := db.GetTeamByProjectID(r, h.databaseUrl)
 
+	team, err := db.GetTeamByProjectID(r, h.databaseUrl)
 	if err != nil {
 		respondInternalServerError(w, err)
 		return

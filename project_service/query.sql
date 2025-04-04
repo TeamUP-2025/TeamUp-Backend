@@ -305,11 +305,12 @@ SELECT
     "user".location,
     "user".avatar,
     string_agg(tag.name, ', ') AS tags,
-    application.coverletter
+    application.coverletter,
+    "user".uid
 FROM application
          JOIN "user" ON "user".uid = application.uid
-         JOIN "userTag" ON "user".uid = "userTag".uid
-         JOIN "tag" ON "tag".tagid = "userTag".tagid
+         LEFT JOIN "userTag" ON "user".uid = "userTag".uid
+         LEFT JOIN "tag" ON "tag".tagid = "userTag".tagid
 WHERE application.projectid = $1
 GROUP BY application.appid, "user".uid;
 
