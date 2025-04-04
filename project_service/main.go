@@ -63,6 +63,7 @@ func main() {
 		r.Post("/delete/teammember", projectHandler.HandlerDeleteTeamMember)
 		r.Post("/approve/application", projectHandler.HandlerApproveApplication)
 		r.Post("/deny/application", projectHandler.HandlerDenyApplication)
+		r.Post("/create/donation", projectHandler.HandleCreateDonation)
 	})
 
 	r.Route("/repo", func(r chi.Router) {
