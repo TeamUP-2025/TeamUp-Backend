@@ -287,9 +287,22 @@ DELETE
 FROM teammember
 WHERE uid = $2 AND projectid = $1;
 
--- name: getProjectRepoByProjectID
+-- name: getProjectRepoByProjectID: one
 SELECT repo.*
 FROM repo
          JOIN project ON repo.repoid = project.repoid
 WHERE project.projectid = $1;
 
+-- name: getProjectApplicationByProjectID: many
+SELECT
+    "user".name,
+    "user".location,
+    "user".avatar,
+    string_agg(tag.name, ', ') AS tags,
+    application.coverletter
+FROM application
+         JOIN "user" ON "user".uid = application.uid
+         JOIN "userTag" ON "user".uid = "userTag".uid
+         JOIN "tag" ON "tag".tagid = "userTag".tagid
+WHERE application.projectid = $1
+GROUP BY application.appid, "user".uid;
