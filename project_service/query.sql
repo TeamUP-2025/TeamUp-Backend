@@ -1,3 +1,9 @@
+-- name: GetProjectByMemberStatus :many
+SELECT p.projectid, p.title, p.description, p.status, p.repoId, p.licenseId, tm.role
+FROM project p
+JOIN teammember tm ON p.projectid = tm.projectid
+WHERE tm.uid = $1;
+
 -- name: InsertProject :one
 WITH 
 repo_id AS (

@@ -143,3 +143,21 @@ func (h *ProjectHandler) HandlerCreateProject(w http.ResponseWriter, r *http.Req
 
 	w.Write([]byte(projectId))
 }
+
+func (h *ProjectHandler) HandleGetProjectByMemberStatus(w http.ResponseWriter, r *http.Request) {
+	projectData, err := db.GetProjectByMemberStatus(r, h.databaseUrl)
+
+	if err != nil {
+		respondInternalServerError(w, err)
+		return
+	}
+
+	repoJson, err := json.Marshal(projectData)
+
+	if err != nil {
+		respondInternalServerError(w, err)
+		return
+	}
+
+	w.Write(repoJson)
+}
