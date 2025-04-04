@@ -35,3 +35,16 @@ func GetUserProfile(token string) (*github.User, *github.Response, error) {
 	client := github.NewClient(nil).WithAuthToken(token)
 	return client.Users.Get(context.Background(), "")
 }
+
+
+func AddCollaborator(token string, owner string, repo string, user string) error {
+	client := github.NewClient(nil).WithAuthToken(token)
+	_, _, err := client.Repositories.AddCollaborator(context.Background(), owner, repo, user, nil)
+	return err
+}
+
+func RemoveCollaborator(token string, owner string, repo string, user string) error {
+	client := github.NewClient(nil).WithAuthToken(token)
+	_, err := client.Repositories.RemoveCollaborator(context.Background(), owner, repo, user)
+	return err
+}

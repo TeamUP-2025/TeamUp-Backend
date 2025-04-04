@@ -51,6 +51,8 @@ func main() {
 			r.Use(middleware.UserOnly(cfg))
 			r.Post("/create", projectHandler.HandlerCreateProject)
 			r.Get("/project/member", projectHandler.HandleGetProjectByMemberStatus)
+			r.Post("/delete/teammember", projectHandler.HandlerDeleteTeamMember)
+			r.Post("/application/approve", projectHandler.HandlerApproveApplication)
 		})
 		r.Get("/", projectHandler.HandleSearchProject)
 		r.Get("/{projectId}", projectHandler.HandleGetProjectByID)
@@ -64,8 +66,6 @@ func main() {
 		// team member
 		r.Get("/{projectId}/team", projectHandler.HandleGetTeamByProjectID)
 		r.Post("/update/teammember", projectHandler.HandlerUpdateTeamMemberRole)
-		r.Post("/delete/teammember", projectHandler.HandlerDeleteTeamMember)
-		r.Post("/application/approve", projectHandler.HandlerApproveApplication)
 		r.Post("/application/deny", projectHandler.HandlerDenyApplication)
 
 		r.Post("/roadmap/update", projectHandler.HandleUpdateRoadmapStatus)

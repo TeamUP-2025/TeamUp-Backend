@@ -61,13 +61,15 @@ func UpdateTeamMemberRole(r *http.Request, databaseUrl string) error {
 	return err
 }
 
-func DeleteTeamMember(r *http.Request, databaseUrl string) error {
+func DeleteTeamMember(r *http.Request, databaseUrl string) (TeamMemberRequest, error) {
 	ctx := context.Background()
+
+
 
 	var request TeamMemberRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		return err
+		return TeamMemberRequest{}, err
 	}
 
 	fmt.Println("projectid", request.ProjectId)
@@ -75,7 +77,7 @@ func DeleteTeamMember(r *http.Request, databaseUrl string) error {
 
 	conn, err := pgx.Connect(ctx, databaseUrl)
 	if err != nil {
-		return err
+		return TeamMemberRequest{}, err
 	}
 	defer conn.Close(ctx)
 
@@ -87,45 +89,47 @@ func DeleteTeamMember(r *http.Request, databaseUrl string) error {
 	err = puuid.Scan(request.ProjectId)
 
 	if err != nil {
-		return err
+		return TeamMemberRequest{}, err
 	}
 
 	uuuid := pgtype.UUID{}
 	err = uuuid.Scan(request.UserId)
 
 	if err != nil {
-		return err
+		return TeamMemberRequest{}, err
 	}
 
-	// TODO: Delete user from collab github api
+
 
 	// Delete user-project association from teammember table
 	err = queries.deleteTeamMember(ctx, deleteTeamMemberParams{
 		Projectid: puuid, Uid: uuuid,
 	})
 	if err != nil {
-		return err
+		return TeamMemberRequest{}, err
 	}
-	return err
+	return request, nil
 }
 
-func ApproveApplication(r *http.Request, databaseUrl string) error {
+func ApproveApplication(r *http.Request, databaseUrl string) (TeamMemberRequest, error) {
 	ctx := context.Background()
 
 	var request TeamMemberRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		return err
+		return TeamMemberRequest{}, err
 	}
 
 	fmt.Println("projectid", request.ProjectId)
 	fmt.Println("userId", request.UserId)
 
 	conn, err := pgx.Connect(ctx, databaseUrl)
-	defer conn.Close(ctx)
 	if err != nil {
-		return err
+		return TeamMemberRequest{}, err
 	}
+
+	defer conn.Close(ctx)
+	
 	
 
 	queries := New(conn)
@@ -133,13 +137,13 @@ func ApproveApplication(r *http.Request, databaseUrl string) error {
 	puuid := pgtype.UUID{}
 	err = puuid.Scan(request.ProjectId)
 	if err != nil {
-		return err
+		return TeamMemberRequest{}, err
 	}
 
 	uuuid := pgtype.UUID{}
 	err = uuuid.Scan(request.UserId)
 	if err != nil {
-		return err
+		return TeamMemberRequest{}, err
 	}
 
 	// Delete Application of user associated with project
@@ -147,7 +151,7 @@ func ApproveApplication(r *http.Request, databaseUrl string) error {
 		Projectid: puuid, Uid: uuuid,
 	})
 	if err != nil {
-		return err
+		return TeamMemberRequest{}, err
 	}
 
 	// Insert the new user to Teammember table
@@ -155,15 +159,13 @@ func ApproveApplication(r *http.Request, databaseUrl string) error {
 		Projectid: puuid, Uid: uuuid,
 	})
 	if err != nil {
-		return err
+		return TeamMemberRequest{}, err
 	}
 
-	// TODO: Add user to collab github api
-
-	return err
+	return request , nil
 }
 
-func DenyApplication(r *http.Request, databaseUrl string) error {
+func DenyApplication(r *http.Request, databaseUrl string) ( error) {
 	ctx := context.Background()
 
 	var request TeamMemberRequest
@@ -204,7 +206,7 @@ func DenyApplication(r *http.Request, databaseUrl string) error {
 		return err
 	}
 
-	return err
+	return nil
 }
 
 func GetTeamByProjectID(r *http.Request, databaseUrl string) ([]getProjectTeamByProjectIDRow, error) {

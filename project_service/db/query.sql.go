@@ -958,6 +958,47 @@ func (q *Queries) getProjectTeamByProjectID(ctx context.Context, projectid pgtyp
 	return items, nil
 }
 
+const getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaborator = `-- name: getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaborator :one
+WITH collaborator AS (
+    SELECT uu.login AS collab
+    FROM "user" uu
+    WHERE uu.uid = $2
+    LIMIT 1
+)
+SELECT
+    "user".login AS owner,
+    repo.name AS repoName,
+    collaborator.collab AS collaborator
+FROM
+    repo
+JOIN
+    "user" ON repo.uId = "user".uid
+JOIN
+    "project" ON repo.repoid = "project".repoid
+CROSS JOIN -- Add the CROSS JOIN here
+    collaborator
+WHERE
+    "project".projectid = $1
+`
+
+type getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaboratorParams struct {
+	Projectid pgtype.UUID
+	Uid       pgtype.UUID
+}
+
+type getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaboratorRow struct {
+	Owner        string
+	Reponame     string
+	Collaborator string
+}
+
+func (q *Queries) getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaborator(ctx context.Context, arg getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaboratorParams) (getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaboratorRow, error) {
+	row := q.db.QueryRow(ctx, getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaborator, arg.Projectid, arg.Uid)
+	var i getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaboratorRow
+	err := row.Scan(&i.Owner, &i.Reponame, &i.Collaborator)
+	return i, err
+}
+
 const getTotalProjectDonationByProjectID = `-- name: getTotalProjectDonationByProjectID :one
 SELECT SUM(donation.amount)
 FROM donation

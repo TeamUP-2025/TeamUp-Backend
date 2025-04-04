@@ -84,5 +84,32 @@ func GetProjectById(projectId string, databaseUrl string) (getProjectByProjectId
 }
 
 
+func GetRepoOwnerLoginAndRepoNameFromProjectIDAndCollaborator(projectId string, collaborator string, databaseUrl string) (getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaboratorRow, error) {
+	ctx := context.Background()
 
+	conn, err := pgx.Connect(ctx, databaseUrl)
+	if err != nil {
+		return getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaboratorRow{}, err
+	}
 
+	defer conn.Close(ctx)
+
+	queries := New(conn)
+
+	uuid := pgtype.UUID{}
+	err = uuid.Scan(projectId)
+	if err != nil {
+		return getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaboratorRow{}, err
+	}
+
+	collaboratorUuid := pgtype.UUID{}
+	err = collaboratorUuid.Scan(collaborator)
+	if err != nil {
+		return getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaboratorRow{}, err
+	}
+
+	return queries.getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaborator(ctx, getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaboratorParams{
+		Projectid: uuid,
+		Uid: collaboratorUuid,
+	})
+}
