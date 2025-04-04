@@ -330,6 +330,31 @@ INSERT INTO roadmap (projectid, roadmap, description, status)
 VALUES ($1, $2, $3, 'Planned');
 
 -- name: getRepoOwnerLoginAndRepoName :one
-SELECT owner, name
+with collaborator as (
+
+    
+)
+SELECT "user".login, repo.name
 FROM repo
-WHERE repoid = $1;
+         JOIN "user" ON repo.uId = "user".uid
+WHERE repo.repoid = $1;
+
+-- name: getProjectDonationByProjectID :many
+SELECT donation.created_at, donation.amount,
+       "user".name, "user".avatar
+FROM donation
+         JOIN "user" ON "user".uid = donation.uid
+         JOIN project ON project.projectid = donation.projectid
+WHERE donation.projectid = $1;
+
+-- name: getTotalProjectDonationByProjectID :one
+SELECT SUM(donation.amount)
+FROM donation
+         JOIN "user" ON "user".uid = donation.uid
+         JOIN project ON project.projectid = donation.projectid
+WHERE donation.projectid = $1
+GROUP BY donation.projectid;
+
+-- name: insertNewDonation :exec
+INSERT INTO donation (uid, projectid, amount)
+VALUES ($1, $2, $3);

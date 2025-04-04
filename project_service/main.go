@@ -57,6 +57,8 @@ func main() {
 		r.Get("/repo/{projectId}", repoHandler.HandleGetRepoByProjectID)
 		r.Get("/{projectId}/application", projectHandler.HandlerGetApplicationByProjectID)
 
+		r.Get("/{projectId}/donation", projectHandler.HandleGetProjectDonationByProjectID)
+		r.Get("/{projectId}/donation/total", projectHandler.HandleGetTotalProjectDonationByProjectID)
 		r.Post("/{projectId}/join", projectHandler.HandlerCreateApplication)
 		r.Post("/update", projectHandler.HandlerUpdateProject)
 		// team member
@@ -68,6 +70,7 @@ func main() {
 
 		r.Post("/roadmap/update", projectHandler.HandleUpdateRoadmapStatus)
 		r.Post("/roadmap/add", projectHandler.HandleAddRoadmapMilestone)
+		r.Post("/create/donation", projectHandler.HandleCreateDonation)
 	})
 
 	r.Route("/repo", func(r chi.Router) {

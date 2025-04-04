@@ -849,6 +849,47 @@ func (q *Queries) getProjectByProjectId(ctx context.Context, projectid pgtype.UU
 	return i, err
 }
 
+const getProjectDonationByProjectID = `-- name: getProjectDonationByProjectID :many
+SELECT donation.created_at, donation.amount,
+       "user".name, "user".avatar
+FROM donation
+         JOIN "user" ON "user".uid = donation.uid
+         JOIN project ON project.projectid = donation.projectid
+WHERE donation.projectid = $1
+`
+
+type getProjectDonationByProjectIDRow struct {
+	CreatedAt pgtype.Timestamptz
+	Amount    pgtype.Numeric
+	Name      string
+	Avatar    *string
+}
+
+func (q *Queries) getProjectDonationByProjectID(ctx context.Context, projectid pgtype.UUID) ([]getProjectDonationByProjectIDRow, error) {
+	rows, err := q.db.Query(ctx, getProjectDonationByProjectID, projectid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []getProjectDonationByProjectIDRow
+	for rows.Next() {
+		var i getProjectDonationByProjectIDRow
+		if err := rows.Scan(
+			&i.CreatedAt,
+			&i.Amount,
+			&i.Name,
+			&i.Avatar,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getProjectRepoByProjectID = `-- name: getProjectRepoByProjectID :one
 SELECT repo.repoid, repo.uid, repo.name, repo.url, repo.description, repo.star, repo.fork, repo.last_updated, repo.language, repo.updated_at
 FROM repo
@@ -915,6 +956,38 @@ func (q *Queries) getProjectTeamByProjectID(ctx context.Context, projectid pgtyp
 		return nil, err
 	}
 	return items, nil
+}
+
+const getTotalProjectDonationByProjectID = `-- name: getTotalProjectDonationByProjectID :one
+SELECT SUM(donation.amount)
+FROM donation
+         JOIN "user" ON "user".uid = donation.uid
+         JOIN project ON project.projectid = donation.projectid
+WHERE donation.projectid = $1
+GROUP BY donation.projectid
+`
+
+func (q *Queries) getTotalProjectDonationByProjectID(ctx context.Context, projectid pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, getTotalProjectDonationByProjectID, projectid)
+	var sum int64
+	err := row.Scan(&sum)
+	return sum, err
+}
+
+const insertNewDonation = `-- name: insertNewDonation :exec
+INSERT INTO donation (uid, projectid, amount)
+VALUES ($1, $2, $3)
+`
+
+type insertNewDonationParams struct {
+	Uid       pgtype.UUID
+	Projectid pgtype.UUID
+	Amount    pgtype.Numeric
+}
+
+func (q *Queries) insertNewDonation(ctx context.Context, arg insertNewDonationParams) error {
+	_, err := q.db.Exec(ctx, insertNewDonation, arg.Uid, arg.Projectid, arg.Amount)
+	return err
 }
 
 const insertNewTagIfNotExisting = `-- name: insertNewTagIfNotExisting :exec

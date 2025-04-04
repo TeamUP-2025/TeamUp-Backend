@@ -158,3 +158,9 @@ ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE;
 ALTER TABLE "goal"
 ADD COLUMN description VARCHAR;
 -- +goose StatementEnd
+
+-- +goose Up
+-- +goose StatementBegin
+ALTER TABLE "donation"
+ADD COLUMN amount NUMERIC NOT NULL DEFAULT 0;
+-- +goose StatementEnd
