@@ -17,12 +17,14 @@ type AuthHandler struct {
 	jwtSecret    []byte
 	githubSerice *services.GithubService
 	databaseUrl string
+	frontUrl string
 }
 
 func NewAuthHandler(clientID, 
 	clientSecret string, 
 	jwtSecret string, 
 	databaseUrl string,
+	frontUrl string,
 	) *AuthHandler {
 	config := &oauth2.Config{
 		ClientID:     clientID,
@@ -39,6 +41,7 @@ func NewAuthHandler(clientID,
 		config:       config,
 		jwtSecret:    []byte(jwtSecret),
 		databaseUrl: databaseUrl,
+		frontUrl: frontUrl,
 	}
 }
 
@@ -129,10 +132,10 @@ func (h *AuthHandler) HandleGithubCallback(w http.ResponseWriter, r *http.Reques
 		Value:    tokenString,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true, // ensure HTTPS in production
+		Secure:   true, // ensure HTTPS in production // does not have cert
 		SameSite: http.SameSiteNoneMode,
 		Expires:  time.Now().Add(time.Hour * 24), // same duration as JWT expiration
 	})
 
-	http.Redirect(w, r, "http://localhost:3000", http.StatusSeeOther)
+	http.Redirect(w, r, h.frontUrl, http.StatusSeeOther)
 }

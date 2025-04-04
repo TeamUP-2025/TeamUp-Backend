@@ -17,6 +17,7 @@ func main() {
 		cfg.GithubClientSecret,
 		cfg.JWTSecret,
 		cfg.DatabaseURL,
+		cfg.FrontURL,
 	)
 
 	githubHandler := handlers.NewGithubHandler(
@@ -55,14 +56,20 @@ func main() {
 		r.Get("/{projectId}", projectHandler.HandleGetProjectByID)
 		r.Get("/repo/{projectId}", repoHandler.HandleGetRepoByProjectID)
 		r.Get("/{projectId}/application", projectHandler.HandlerGetApplicationByProjectID)
+
 		r.Get("/{projectId}/donation", projectHandler.HandleGetProjectDonationByProjectID)
 		r.Get("/{projectId}/donation/total", projectHandler.HandleGetTotalProjectDonationByProjectID)
 		r.Post("/{projectId}/join", projectHandler.HandlerCreateApplication)
 		r.Post("/update", projectHandler.HandlerUpdateProject)
+		// team member
+		r.Get("/{projectId}/team", projectHandler.HandleGetTeamByProjectID)
 		r.Post("/update/teammember", projectHandler.HandlerUpdateTeamMemberRole)
 		r.Post("/delete/teammember", projectHandler.HandlerDeleteTeamMember)
-		r.Post("/approve/application", projectHandler.HandlerApproveApplication)
-		r.Post("/deny/application", projectHandler.HandlerDenyApplication)
+		r.Post("/application/approve", projectHandler.HandlerApproveApplication)
+		r.Post("/application/deny", projectHandler.HandlerDenyApplication)
+
+		r.Post("/roadmap/update", projectHandler.HandleUpdateRoadmapStatus)
+		r.Post("/roadmap/add", projectHandler.HandleAddRoadmapMilestone)
 		r.Post("/create/donation", projectHandler.HandleCreateDonation)
 	})
 

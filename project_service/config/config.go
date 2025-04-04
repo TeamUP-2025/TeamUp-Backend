@@ -12,6 +12,7 @@ type Config struct {
 	GithubClientSecret string
 	JWTSecret          string
 	DatabaseURL        string
+	FrontURL           string
 }
 
 func LoadConfig() *Config {
@@ -25,5 +26,6 @@ func LoadConfig() *Config {
 		GithubClientSecret: os.Getenv("GithubClientSecret"),
 		JWTSecret:          os.Getenv("JWT_SECRET"),
 		DatabaseURL:        os.Getenv("DATABASE_URL"),
+		FrontURL:           os.Getenv("FRONT_URL"),
 	}
 }

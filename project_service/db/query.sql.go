@@ -676,6 +676,22 @@ func (q *Queries) UpsertUseAndReturnUidAndName(ctx context.Context, arg UpsertUs
 	return i, err
 }
 
+const addRoadmap = `-- name: addRoadmap :exec
+INSERT INTO roadmap (projectid, roadmap, description, status)
+VALUES ($1, $2, $3, 'Planned')
+`
+
+type addRoadmapParams struct {
+	Projectid   pgtype.UUID
+	Roadmap     string
+	Description string
+}
+
+func (q *Queries) addRoadmap(ctx context.Context, arg addRoadmapParams) error {
+	_, err := q.db.Exec(ctx, addRoadmap, arg.Projectid, arg.Roadmap, arg.Description)
+	return err
+}
+
 const deleteApplication = `-- name: deleteApplication :exec
 DELETE
 FROM application
@@ -725,11 +741,12 @@ SELECT
     "user".location,
     "user".avatar,
     string_agg(tag.name, ', ') AS tags,
-    application.coverletter
+    application.coverletter,
+    "user".uid
 FROM application
          JOIN "user" ON "user".uid = application.uid
-         JOIN "userTag" ON "user".uid = "userTag".uid
-         JOIN "tag" ON "tag".tagid = "userTag".tagid
+         LEFT JOIN "userTag" ON "user".uid = "userTag".uid
+         LEFT JOIN "tag" ON "tag".tagid = "userTag".tagid
 WHERE application.projectid = $1
 GROUP BY application.appid, "user".uid
 `
@@ -740,6 +757,7 @@ type getProjectApplicationByProjectIDRow struct {
 	Avatar      *string
 	Tags        []byte
 	Coverletter *string
+	Uid         pgtype.UUID
 }
 
 func (q *Queries) getProjectApplicationByProjectID(ctx context.Context, projectid pgtype.UUID) ([]getProjectApplicationByProjectIDRow, error) {
@@ -757,6 +775,7 @@ func (q *Queries) getProjectApplicationByProjectID(ctx context.Context, projecti
 			&i.Avatar,
 			&i.Tags,
 			&i.Coverletter,
+			&i.Uid,
 		); err != nil {
 			return nil, err
 		}
@@ -896,6 +915,49 @@ func (q *Queries) getProjectRepoByProjectID(ctx context.Context, projectid pgtyp
 	return i, err
 }
 
+const getProjectTeamByProjectID = `-- name: getProjectTeamByProjectID :many
+SELECT "user".name, "user".location, "user".avatar, teammember.role, "user".login, "user".uid
+FROM teammember
+         JOIN "user" ON teammember.uid = "user".uid
+WHERE projectid = $1
+`
+
+type getProjectTeamByProjectIDRow struct {
+	Name     string
+	Location *string
+	Avatar   *string
+	Role     string
+	Login    string
+	Uid      pgtype.UUID
+}
+
+func (q *Queries) getProjectTeamByProjectID(ctx context.Context, projectid pgtype.UUID) ([]getProjectTeamByProjectIDRow, error) {
+	rows, err := q.db.Query(ctx, getProjectTeamByProjectID, projectid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []getProjectTeamByProjectIDRow
+	for rows.Next() {
+		var i getProjectTeamByProjectIDRow
+		if err := rows.Scan(
+			&i.Name,
+			&i.Location,
+			&i.Avatar,
+			&i.Role,
+			&i.Login,
+			&i.Uid,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTotalProjectDonationByProjectID = `-- name: getTotalProjectDonationByProjectID :one
 SELECT SUM(donation.amount)
 FROM donation
@@ -989,6 +1051,23 @@ type updateProjectTitleDescriptionParams struct {
 
 func (q *Queries) updateProjectTitleDescription(ctx context.Context, arg updateProjectTitleDescriptionParams) error {
 	_, err := q.db.Exec(ctx, updateProjectTitleDescription, arg.Projectid, arg.Title, arg.Description)
+	return err
+}
+
+const updateRoadmapStatus = `-- name: updateRoadmapStatus :exec
+UPDATE roadmap
+SET status = $3
+WHERE projectid = $1 AND roadmap = $2
+`
+
+type updateRoadmapStatusParams struct {
+	Projectid pgtype.UUID
+	Roadmap   string
+	Status    string
+}
+
+func (q *Queries) updateRoadmapStatus(ctx context.Context, arg updateRoadmapStatusParams) error {
+	_, err := q.db.Exec(ctx, updateRoadmapStatus, arg.Projectid, arg.Roadmap, arg.Status)
 	return err
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -80,6 +81,9 @@ func GetApplicationByProjectId(projectId string, databaseUrl string) ([]getProje
 
 	uuid := pgtype.UUID{}
 	err = uuid.Scan(projectId)
+
+	fmt.Println(uuid)
+	
 	if err != nil {
 		return []getProjectApplicationByProjectIDRow{}, err
 	}

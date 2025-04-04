@@ -305,14 +305,29 @@ SELECT
     "user".location,
     "user".avatar,
     string_agg(tag.name, ', ') AS tags,
-    application.coverletter
+    application.coverletter,
+    "user".uid
 FROM application
          JOIN "user" ON "user".uid = application.uid
-         JOIN "userTag" ON "user".uid = "userTag".uid
-         JOIN "tag" ON "tag".tagid = "userTag".tagid
+         LEFT JOIN "userTag" ON "user".uid = "userTag".uid
+         LEFT JOIN "tag" ON "tag".tagid = "userTag".tagid
 WHERE application.projectid = $1
 GROUP BY application.appid, "user".uid;
 
+-- name: getProjectTeamByProjectID :many
+SELECT "user".name, "user".location, "user".avatar, teammember.role, "user".login, "user".uid
+FROM teammember
+         JOIN "user" ON teammember.uid = "user".uid
+WHERE projectid = $1;
+
+-- name: updateRoadmapStatus :exec
+UPDATE roadmap
+SET status = $3
+WHERE projectid = $1 AND roadmap = $2;
+
+-- name: addRoadmap :exec
+INSERT INTO roadmap (projectid, roadmap, description, status)
+VALUES ($1, $2, $3, 'Planned');
 -- name: getProjectDonationByProjectID :many
 SELECT donation.created_at, donation.amount,
        "user".name, "user".avatar
