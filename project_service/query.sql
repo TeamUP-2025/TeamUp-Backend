@@ -328,3 +328,7 @@ FROM donation
          JOIN project ON project.projectid = donation.projectid
 WHERE donation.projectid = $1
 GROUP BY donation.projectid
+
+-- name: insertNewDonation :exec
+INSERT INTO donation (uid, projectid, amount)
+VALUES ($1, $2, $3);
