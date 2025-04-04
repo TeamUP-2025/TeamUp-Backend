@@ -20,6 +20,7 @@ type Donation struct {
 	Uid        pgtype.UUID
 	Projectid  pgtype.UUID
 	CreatedAt  pgtype.Timestamptz
+	Amount     pgtype.Numeric
 }
 
 type Goal struct {
