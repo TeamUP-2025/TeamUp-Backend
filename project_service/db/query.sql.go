@@ -259,7 +259,7 @@ func (q *Queries) InsertApplication(ctx context.Context, arg InsertApplicationPa
 
 const insertGoal = `-- name: InsertGoal :exec
 INSERT INTO goal (projectId, name, description)
-SELECT $1, 
+SELECT $1,
     UNNEST($2::varchar[]),
     UNNEST($3::varchar[])
 `
@@ -276,7 +276,7 @@ func (q *Queries) InsertGoal(ctx context.Context, arg InsertGoalParams) error {
 }
 
 const insertProject = `-- name: InsertProject :one
-WITH 
+WITH
 repo_id AS (
     SELECT repoId
     FROM repo
@@ -323,7 +323,7 @@ func (q *Queries) InsertProject(ctx context.Context, arg InsertProjectParams) (p
 
 const insertRoadmap = `-- name: InsertRoadmap :exec
 INSERT INTO roadmap (projectid, roadmap, description, status)
-SELECT $1, 
+SELECT $1,
     UNNEST($2::varchar[]),
     UNNEST($3::varchar[]),
     UNNEST($4::varchar[])
@@ -551,28 +551,33 @@ func (q *Queries) UpsertRepo(ctx context.Context, arg UpsertRepoParams) (Repo, e
 }
 
 const upsertUseAndReturnUidAndName = `-- name: UpsertUseAndReturnUidAndName :one
-INSERT INTO "user" (login,
-                    name,
-                    avatar,
-                    location,
-                    token,
-                    bio,
-                    followers,
-                    following,
-                    public_repos,
-                    total_private_repos,
-                    html_url)
-VALUES ($1,
-        $2,
-        $3,
-        $4,
-        $5,
-        $6,
-        $7,
-        $8,
-        $9,
-        $10,
-        $11) ON CONFLICT (login) DO
+INSERT INTO
+    "user" (
+    login,
+    name,
+    avatar,
+    location,
+    token,
+    bio,
+    followers,
+    following,
+    public_repos,
+    total_private_repos,
+    html_url
+)
+VALUES (
+           $1,
+           $2,
+           $3,
+           $4,
+           $5,
+           $6,
+           $7,
+           $8,
+           $9,
+           $10,
+           $11
+       ) ON CONFLICT (login) DO
 UPDATE
     SET
         token = $5,
@@ -669,6 +674,55 @@ func (q *Queries) deleteTeamMember(ctx context.Context, arg deleteTeamMemberPara
 	return err
 }
 
+const getProjectApplicationByProjectID = `-- name: getProjectApplicationByProjectID :many
+SELECT
+    "user".name,
+    "user".location,
+    "user".avatar,
+    string_agg(tag.name, ', ') AS tags,
+    application.coverletter
+FROM application
+         JOIN "user" ON "user".uid = application.uid
+         JOIN "userTag" ON "user".uid = "userTag".uid
+         JOIN "tag" ON "tag".tagid = "userTag".tagid
+WHERE application.projectid = $1
+GROUP BY application.appid, "user".uid
+`
+
+type getProjectApplicationByProjectIDRow struct {
+	Name        string
+	Location    *string
+	Avatar      *string
+	Tags        []byte
+	Coverletter *string
+}
+
+func (q *Queries) getProjectApplicationByProjectID(ctx context.Context, projectid pgtype.UUID) ([]getProjectApplicationByProjectIDRow, error) {
+	rows, err := q.db.Query(ctx, getProjectApplicationByProjectID, projectid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []getProjectApplicationByProjectIDRow
+	for rows.Next() {
+		var i getProjectApplicationByProjectIDRow
+		if err := rows.Scan(
+			&i.Name,
+			&i.Location,
+			&i.Avatar,
+			&i.Tags,
+			&i.Coverletter,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getProjectByProjectId = `-- name: getProjectByProjectId :one
 SELECT p.projectid,
        p.title,
@@ -727,6 +781,31 @@ func (q *Queries) getProjectByProjectId(ctx context.Context, projectid pgtype.UU
 		&i.Goal,
 		&i.Roadmap,
 		&i.Tag,
+	)
+	return i, err
+}
+
+const getProjectRepoByProjectID = `-- name: getProjectRepoByProjectID :one
+SELECT repo.repoid, repo.uid, repo.name, repo.url, repo.description, repo.star, repo.fork, repo.last_updated, repo.language, repo.updated_at
+FROM repo
+         JOIN project ON repo.repoid = project.repoid
+WHERE project.projectid = $1
+`
+
+func (q *Queries) getProjectRepoByProjectID(ctx context.Context, projectid pgtype.UUID) (Repo, error) {
+	row := q.db.QueryRow(ctx, getProjectRepoByProjectID, projectid)
+	var i Repo
+	err := row.Scan(
+		&i.Repoid,
+		&i.Uid,
+		&i.Name,
+		&i.Url,
+		&i.Description,
+		&i.Star,
+		&i.Fork,
+		&i.LastUpdated,
+		&i.Language,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
