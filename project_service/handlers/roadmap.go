@@ -20,6 +20,7 @@ func (h *ProjectHandler) HandleUpdateRoadmapStatus(w http.ResponseWriter, r *htt
 func (h *ProjectHandler) HandleAddRoadmapMilestone(w http.ResponseWriter, r *http.Request) {
 	err := db.AddRoadmapMilestoneQuery(r, h.databaseUrl)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
