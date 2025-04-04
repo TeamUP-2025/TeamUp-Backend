@@ -227,7 +227,7 @@ SELECT $1, t.tagid
 FROM "tag" t
 WHERE t.name = ANY ($2::varchar[]);
 
--- name: updateTeamMemberRole
+-- name: updateTeamMemberRole :exec
 UPDATE teammember
 SET role = $3
 WHERE uid = $2
