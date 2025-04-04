@@ -31,11 +31,17 @@ func UpdateProjectDetailWithTag(r *http.Request, databaseUrl string) error {
 	fmt.Println("tags", request.Tags)
 
 	conn, err := pgx.Connect(ctx, databaseUrl)
+	if err != nil {
+		return err
+	}
 
 	queries := New(conn)
 
 	uuid := pgtype.UUID{}
 	err = uuid.Scan(request.ProjectId)
+	if err != nil {
+		return err
+	}
 
 	// Edit Title and Description
 	err = queries.updateProjectTitleDescription(ctx, updateProjectTitleDescriptionParams{
