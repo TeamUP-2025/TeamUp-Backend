@@ -1,5 +1,5 @@
 -- name: InsertProject :one
-WITH 
+WITH
 repo_id AS (
     SELECT repoId
     FROM repo
@@ -22,14 +22,14 @@ SELECT projectid FROM project_insert;
 
 -- name: InsertRoadmap :exec
 INSERT INTO roadmap (projectid, roadmap, description, status)
-SELECT $1, 
+SELECT $1,
     UNNEST($2::varchar[]),
     UNNEST($3::varchar[]),
     UNNEST($4::varchar[]);
 
 -- name: InsertGoal :exec
 INSERT INTO goal (projectId, name, description)
-SELECT $1, 
+SELECT $1,
     UNNEST($2::varchar[]),
     UNNEST($3::varchar[]);
 
@@ -287,13 +287,13 @@ DELETE
 FROM teammember
 WHERE uid = $2 AND projectid = $1;
 
--- name: getProjectRepoByProjectID: one
+-- name: getProjectRepoByProjectID :one
 SELECT repo.*
 FROM repo
          JOIN project ON repo.repoid = project.repoid
 WHERE project.projectid = $1;
 
--- name: getProjectApplicationByProjectID: many
+-- name: getProjectApplicationByProjectID :many
 SELECT
     "user".name,
     "user".location,
