@@ -27,8 +27,18 @@ func (h *ProjectHandler) HandlerDeleteTeamMember(w http.ResponseWriter, r *http.
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *ProjectHandler) HadlerApproveApplication(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) HandlerApproveApplication(w http.ResponseWriter, r *http.Request) {
 	err := db.ApproveApplication(r, h.databaseUrl)
+
+	if err != nil {
+		respondInternalServerError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *ProjectHandler) HandlerDenyApplication(w http.ResponseWriter, r *http.Request) {
+	err := db.DenyApplication(r, h.databaseUrl)
 
 	if err != nil {
 		respondInternalServerError(w, err)

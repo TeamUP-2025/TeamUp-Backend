@@ -47,7 +47,8 @@ func main() {
 		r.Post("/update", projectHandler.HandlerUpdateProject)
 		r.Post("/update/teammember", projectHandler.HandlerUpdateTeamMemberRole)
 		r.Post("/delete/teammember", projectHandler.HandlerDeleteTeamMember)
-		r.Post("/approve/application", projectHandler.HadlerApproveApplication)
+		r.Post("/approve/application", projectHandler.HandlerApproveApplication)
+		r.Post("/deny/application", projectHandler.HandlerDenyApplication)
 	})
 
 	r.Get("/profile/{login}", projectHandler.HandleGetUserByLogin)
