@@ -312,3 +312,9 @@ FROM application
          JOIN "tag" ON "tag".tagid = "userTag".tagid
 WHERE application.projectid = $1
 GROUP BY application.appid, "user".uid;
+
+-- name: getProjectTeamByProjectID :many
+SELECT "user".name, "user".location, "user".avatar, teammember.role, "user".login, "user".uid
+FROM teammember
+         JOIN "user" ON teammember.uid = "user".uid
+WHERE projectid = $1;

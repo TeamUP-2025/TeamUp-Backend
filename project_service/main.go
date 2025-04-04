@@ -55,8 +55,11 @@ func main() {
 		r.Get("/{projectId}", projectHandler.HandleGetProjectByID)
 		r.Get("/repo/{projectId}", repoHandler.HandleGetRepoByProjectID)
 		r.Get("/{projectId}/application", projectHandler.HandlerGetApplicationByProjectID)
+
 		r.Post("/{projectId}/join", projectHandler.HandlerCreateApplication)
 		r.Post("/update", projectHandler.HandlerUpdateProject)
+		// team member
+		r.Get("/{projectId}/team", projectHandler.HandleGetTeamByProjectID)
 		r.Post("/update/teammember", projectHandler.HandlerUpdateTeamMemberRole)
 		r.Post("/delete/teammember", projectHandler.HandlerDeleteTeamMember)
 		r.Post("/approve/application", projectHandler.HandlerApproveApplication)

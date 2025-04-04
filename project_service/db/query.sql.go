@@ -855,6 +855,49 @@ func (q *Queries) getProjectRepoByProjectID(ctx context.Context, projectid pgtyp
 	return i, err
 }
 
+const getProjectTeamByProjectID = `-- name: getProjectTeamByProjectID :many
+SELECT "user".name, "user".location, "user".avatar, teammember.role, "user".login, "user".uid
+FROM teammember
+         JOIN "user" ON teammember.uid = "user".uid
+WHERE projectid = $1
+`
+
+type getProjectTeamByProjectIDRow struct {
+	Name     string
+	Location *string
+	Avatar   *string
+	Role     string
+	Login    string
+	Uid      pgtype.UUID
+}
+
+func (q *Queries) getProjectTeamByProjectID(ctx context.Context, projectid pgtype.UUID) ([]getProjectTeamByProjectIDRow, error) {
+	rows, err := q.db.Query(ctx, getProjectTeamByProjectID, projectid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []getProjectTeamByProjectIDRow
+	for rows.Next() {
+		var i getProjectTeamByProjectIDRow
+		if err := rows.Scan(
+			&i.Name,
+			&i.Location,
+			&i.Avatar,
+			&i.Role,
+			&i.Login,
+			&i.Uid,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertNewTagIfNotExisting = `-- name: insertNewTagIfNotExisting :exec
 INSERT INTO "tag" (name)
 SELECT new_tags.name

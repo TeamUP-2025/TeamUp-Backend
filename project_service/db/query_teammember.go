@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"net/http"
 )
 
 type TeamMemberRequest struct {
@@ -29,14 +31,25 @@ func UpdateTeamMemberRole(r *http.Request, databaseUrl string) error {
 	fmt.Println("role", request.Role)
 
 	conn, err := pgx.Connect(ctx, databaseUrl)
+	defer conn.Close(ctx)
+	if err != nil {
+		return err
+	}
+	
 
 	queries := New(conn)
 
 	puuid := pgtype.UUID{}
 	err = puuid.Scan(request.ProjectId)
+	if err != nil {
+		return err
+	}
 
 	uuuid := pgtype.UUID{}
 	err = uuuid.Scan(request.UserId)
+	if err != nil {
+		return err
+	}
 
 	// Update member role
 	err = queries.updateTeamMemberRole(ctx, updateTeamMemberRoleParams{
@@ -61,14 +74,30 @@ func DeleteTeamMember(r *http.Request, databaseUrl string) error {
 	fmt.Println("userId", request.UserId)
 
 	conn, err := pgx.Connect(ctx, databaseUrl)
+	if err != nil {
+		return err
+	}
+	defer conn.Close(ctx)
+
+
 
 	queries := New(conn)
 
 	puuid := pgtype.UUID{}
 	err = puuid.Scan(request.ProjectId)
 
+	if err != nil {
+		return err
+	}
+
 	uuuid := pgtype.UUID{}
 	err = uuuid.Scan(request.UserId)
+
+	if err != nil {
+		return err
+	}
+
+	// TODO: Delete user from collab github api
 
 	// Delete user-project association from teammember table
 	err = queries.deleteTeamMember(ctx, deleteTeamMemberParams{
@@ -93,14 +122,25 @@ func ApproveApplication(r *http.Request, databaseUrl string) error {
 	fmt.Println("userId", request.UserId)
 
 	conn, err := pgx.Connect(ctx, databaseUrl)
+	defer conn.Close(ctx)
+	if err != nil {
+		return err
+	}
+	
 
 	queries := New(conn)
 
 	puuid := pgtype.UUID{}
 	err = puuid.Scan(request.ProjectId)
+	if err != nil {
+		return err
+	}
 
 	uuuid := pgtype.UUID{}
 	err = uuuid.Scan(request.UserId)
+	if err != nil {
+		return err
+	}
 
 	// Delete Application of user associated with project
 	err = queries.deleteApplication(ctx, deleteApplicationParams{
@@ -118,6 +158,8 @@ func ApproveApplication(r *http.Request, databaseUrl string) error {
 		return err
 	}
 
+	// TODO: Add user to collab github api
+
 	return err
 }
 
@@ -134,14 +176,24 @@ func DenyApplication(r *http.Request, databaseUrl string) error {
 	fmt.Println("userId", request.UserId)
 
 	conn, err := pgx.Connect(ctx, databaseUrl)
+	defer conn.Close(ctx)
+	if err != nil {
+		return err
+	}
 
 	queries := New(conn)
 
 	puuid := pgtype.UUID{}
 	err = puuid.Scan(request.ProjectId)
+	if err != nil {
+		return err
+	}
 
 	uuuid := pgtype.UUID{}
 	err = uuuid.Scan(request.UserId)
+	if err != nil {
+		return err
+	}
 
 	// Delete Application of user associated with project
 	err = queries.deleteApplication(ctx, deleteApplicationParams{
@@ -153,4 +205,25 @@ func DenyApplication(r *http.Request, databaseUrl string) error {
 	}
 
 	return err
+}
+
+func GetTeamByProjectID(r *http.Request, databaseUrl string) ([]getProjectTeamByProjectIDRow, error) {
+	ctx := context.Background()
+
+	conn, err := pgx.Connect(ctx, databaseUrl)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close(ctx)
+
+	queries := New(conn)
+
+	puuid := pgtype.UUID{}
+	err = puuid.Scan(chi.URLParam(r, "projectId"))
+
+	if err != nil {
+		return nil, err
+	}
+
+	return queries.getProjectTeamByProjectID(ctx, puuid)
 }

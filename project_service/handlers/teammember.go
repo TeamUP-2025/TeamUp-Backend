@@ -64,3 +64,19 @@ func (h *ProjectHandler) HandlerGetApplicationByProjectID(w http.ResponseWriter,
 
 	w.Write(appJson)
 }
+
+func (h *ProjectHandler) HandleGetTeamByProjectID(w http.ResponseWriter, r *http.Request) {
+	team, err := db.GetTeamByProjectID(r, h.databaseUrl)
+
+	if err != nil {
+		respondInternalServerError(w, err)
+		return
+	}
+
+	teamJson, err := json.Marshal(team)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	w.Write(teamJson)
+}
