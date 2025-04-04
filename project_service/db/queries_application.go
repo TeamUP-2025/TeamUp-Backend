@@ -18,7 +18,6 @@ func InsertIntoApplicationQuery(r *http.Request, databaseUrl string) (int, error
 		return 0, err
 	}
 
-
 	conn, err := pgx.Connect(ctx, databaseUrl)
 	if err != nil {
 		return 0, err
@@ -58,14 +57,31 @@ func InsertIntoApplicationQuery(r *http.Request, databaseUrl string) (int, error
 	}
 
 	err = queries.InsertApplication(ctx, InsertApplicationParams{
-		Uid         :uid,
-		Projectid   :pid,
-		Coverletter : &request.CoverLetter,
+		Uid:         uid,
+		Projectid:   pid,
+		Coverletter: &request.CoverLetter,
 	})
 
 	if err != nil {
 		return 0, err
 	}
-	
+
 	return 4, nil
+}
+
+func GetApplicationByProjectId(projectId string, databaseUrl string) ([]getProjectApplicationByProjectIDRow, error) {
+	ctx := context.Background()
+
+	conn, err := pgx.Connect(ctx, databaseUrl)
+	if err != nil {
+		return []getProjectApplicationByProjectIDRow{}, err
+	}
+	queries := New(conn)
+
+	uuid := pgtype.UUID{}
+	err = uuid.Scan(projectId)
+	if err != nil {
+		return []getProjectApplicationByProjectIDRow{}, err
+	}
+	return queries.getProjectApplicationByProjectID(ctx, uuid)
 }
