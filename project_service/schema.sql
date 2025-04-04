@@ -152,3 +152,9 @@ ADD COLUMN language VARCHAR;
 ALTER TABLE "repo"
 ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE;
 -- +goose StatementEnd
+
+-- +goose Up
+-- +goose StatementBegin
+ALTER TABLE "goal"
+ADD COLUMN description VARCHAR;
+-- +goose StatementEnd

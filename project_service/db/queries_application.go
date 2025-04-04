@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/jackc/pgx/v5"
@@ -19,9 +18,6 @@ func InsertIntoApplicationQuery(r *http.Request, databaseUrl string) (int, error
 		return 0, err
 	}
 
-	fmt.Println("uid", request.UId)
-	fmt.Println("coverLetter", request.CoverLetter)
-	fmt.Println("projectId", request.ProjectId)
 
 	conn, err := pgx.Connect(ctx, databaseUrl)
 	if err != nil {

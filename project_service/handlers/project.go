@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -118,8 +117,7 @@ func (h *ProjectHandler) HandlerCreateApplication(w http.ResponseWriter, r *http
 		return
 	}
 
-	fmt.Println(insertStatus)
-	fmt.Println(responseJson)
+
 
 	w.Write(responseJson)
 }
@@ -133,4 +131,15 @@ func (h *ProjectHandler) HandlerUpdateProject(w http.ResponseWriter, r *http.Req
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *ProjectHandler) HandlerCreateProject(w http.ResponseWriter, r *http.Request) {
+	projectId, err := db.CreateProject(r, h.databaseUrl)
+
+	if err != nil {
+		respondInternalServerError(w, err)
+		return
+	}
+
+	w.Write([]byte(projectId))
 }

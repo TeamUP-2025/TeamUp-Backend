@@ -1,5 +1,40 @@
---- name: getAllUser :many
--- SELECT * FROM user;
+-- name: InsertProject :one
+WITH 
+repo_id AS (
+    SELECT repoId
+    FROM repo
+    WHERE repo.name = $3
+),
+project_insert AS (
+    INSERT INTO project (title, description, repoId, status, licenseId)
+    SELECT $1, $2, repo_id.repoId, $4, license.licenseId
+    FROM license, repo_id
+    WHERE license.name = $5
+    RETURNING projectid
+),
+teammember_insert AS (
+    INSERT INTO teammember (projectId, uId, role)
+    SELECT projectid, $6, 'Owner'
+    FROM project_insert
+)
+
+SELECT projectid FROM project_insert;
+
+-- name: InsertRoadmap :exec
+INSERT INTO roadmap (projectid, roadmap, description, status)
+SELECT $1, 
+    UNNEST($2::varchar[]),
+    UNNEST($3::varchar[]),
+    UNNEST($4::varchar[]);
+
+-- name: InsertGoal :exec
+INSERT INTO goal (projectId, name, description)
+SELECT $1, 
+    UNNEST($2::varchar[]),
+    UNNEST($3::varchar[]);
+
+-- name: GetRepoByUid :many
+SELECT * FROM repo WHERE uid = $1;
 
 -- name: UpsertUseAndReturnUidAndName :one
 INSERT INTO "user" (login,

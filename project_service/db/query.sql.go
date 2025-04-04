@@ -116,6 +116,41 @@ func (q *Queries) GetRepoByLogin(ctx context.Context, login string) ([]Repo, err
 	return items, nil
 }
 
+const getRepoByUid = `-- name: GetRepoByUid :many
+SELECT repoid, uid, name, url, description, star, fork, last_updated, language, updated_at FROM repo WHERE uid = $1
+`
+
+func (q *Queries) GetRepoByUid(ctx context.Context, uid pgtype.UUID) ([]Repo, error) {
+	rows, err := q.db.Query(ctx, getRepoByUid, uid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Repo
+	for rows.Next() {
+		var i Repo
+		if err := rows.Scan(
+			&i.Repoid,
+			&i.Uid,
+			&i.Name,
+			&i.Url,
+			&i.Description,
+			&i.Star,
+			&i.Fork,
+			&i.LastUpdated,
+			&i.Language,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUserInfoByLogin = `-- name: GetUserInfoByLogin :one
 SELECT uid,
        login,
@@ -219,6 +254,95 @@ type InsertApplicationParams struct {
 
 func (q *Queries) InsertApplication(ctx context.Context, arg InsertApplicationParams) error {
 	_, err := q.db.Exec(ctx, insertApplication, arg.Uid, arg.Projectid, arg.Coverletter)
+	return err
+}
+
+const insertGoal = `-- name: InsertGoal :exec
+INSERT INTO goal (projectId, name, description)
+SELECT $1, 
+    UNNEST($2::varchar[]),
+    UNNEST($3::varchar[])
+`
+
+type InsertGoalParams struct {
+	Projectid pgtype.UUID
+	Column2   []string
+	Column3   []string
+}
+
+func (q *Queries) InsertGoal(ctx context.Context, arg InsertGoalParams) error {
+	_, err := q.db.Exec(ctx, insertGoal, arg.Projectid, arg.Column2, arg.Column3)
+	return err
+}
+
+const insertProject = `-- name: InsertProject :one
+WITH 
+repo_id AS (
+    SELECT repoId
+    FROM repo
+    WHERE repo.name = $3
+),
+project_insert AS (
+    INSERT INTO project (title, description, repoId, status, licenseId)
+    SELECT $1, $2, repo_id.repoId, $4, license.licenseId
+    FROM license, repo_id
+    WHERE license.name = $5
+    RETURNING projectid
+),
+teammember_insert AS (
+    INSERT INTO teammember (projectId, uId, role)
+    SELECT projectid, $6, 'Owner'
+    FROM project_insert
+)
+
+SELECT projectid FROM project_insert
+`
+
+type InsertProjectParams struct {
+	Title       string
+	Description string
+	Name        string
+	Status      *string
+	Name_2      string
+	Uid         pgtype.UUID
+}
+
+func (q *Queries) InsertProject(ctx context.Context, arg InsertProjectParams) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, insertProject,
+		arg.Title,
+		arg.Description,
+		arg.Name,
+		arg.Status,
+		arg.Name_2,
+		arg.Uid,
+	)
+	var projectid pgtype.UUID
+	err := row.Scan(&projectid)
+	return projectid, err
+}
+
+const insertRoadmap = `-- name: InsertRoadmap :exec
+INSERT INTO roadmap (projectid, roadmap, description, status)
+SELECT $1, 
+    UNNEST($2::varchar[]),
+    UNNEST($3::varchar[]),
+    UNNEST($4::varchar[])
+`
+
+type InsertRoadmapParams struct {
+	Projectid pgtype.UUID
+	Column2   []string
+	Column3   []string
+	Column4   []string
+}
+
+func (q *Queries) InsertRoadmap(ctx context.Context, arg InsertRoadmapParams) error {
+	_, err := q.db.Exec(ctx, insertRoadmap,
+		arg.Projectid,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+	)
 	return err
 }
 
@@ -427,7 +551,6 @@ func (q *Queries) UpsertRepo(ctx context.Context, arg UpsertRepoParams) (Repo, e
 }
 
 const upsertUseAndReturnUidAndName = `-- name: UpsertUseAndReturnUidAndName :one
-
 INSERT INTO "user" (login,
                     name,
                     avatar,
@@ -484,8 +607,6 @@ type UpsertUseAndReturnUidAndNameRow struct {
 	Name string
 }
 
-// - name: getAllUser :many
-// SELECT * FROM user;
 func (q *Queries) UpsertUseAndReturnUidAndName(ctx context.Context, arg UpsertUseAndReturnUidAndNameParams) (UpsertUseAndReturnUidAndNameRow, error) {
 	row := q.db.QueryRow(ctx, upsertUseAndReturnUidAndName,
 		arg.Login,
