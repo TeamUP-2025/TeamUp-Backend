@@ -61,8 +61,10 @@ func UpdateTeamMemberRole(r *http.Request, databaseUrl string) error {
 	return err
 }
 
-func DeleteTeamMember(r *http.Request, databaseUrl string) error {
+func DeleteTeamMember(r *http.Request, token string, databaseUrl string) error {
 	ctx := context.Background()
+
+
 
 	var request TeamMemberRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
@@ -97,7 +99,7 @@ func DeleteTeamMember(r *http.Request, databaseUrl string) error {
 		return err
 	}
 
-	// TODO: Delete user from collab github api
+
 
 	// Delete user-project association from teammember table
 	err = queries.deleteTeamMember(ctx, deleteTeamMemberParams{
@@ -109,7 +111,7 @@ func DeleteTeamMember(r *http.Request, databaseUrl string) error {
 	return err
 }
 
-func ApproveApplication(r *http.Request, databaseUrl string) error {
+func ApproveApplication(r *http.Request, token string, databaseUrl string) error {
 	ctx := context.Background()
 
 	var request TeamMemberRequest
@@ -157,8 +159,6 @@ func ApproveApplication(r *http.Request, databaseUrl string) error {
 	if err != nil {
 		return err
 	}
-
-	// TODO: Add user to collab github api
 
 	return err
 }

@@ -328,3 +328,8 @@ WHERE projectid = $1 AND roadmap = $2;
 -- name: addRoadmap :exec
 INSERT INTO roadmap (projectid, roadmap, description, status)
 VALUES ($1, $2, $3, 'Planned');
+
+-- name: getRepoOwnerLoginAndRepoName :one
+SELECT owner, name
+FROM repo
+WHERE repoid = $1;

@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/TeamUP-2025/TeamUp-Backend/db"
+	"github.com/TeamUP-2025/TeamUp-Backend/services"
+
 	"github.com/go-chi/chi/v5"
 )
 
@@ -20,8 +22,19 @@ func (h *ProjectHandler) HandlerUpdateTeamMemberRole(w http.ResponseWriter, r *h
 }
 
 func (h *ProjectHandler) HandlerDeleteTeamMember(w http.ResponseWriter, r *http.Request) {
-	err := db.DeleteTeamMember(r, h.databaseUrl)
+	token, err := getTokenFromClaims(r, h.databaseUrl)
+	if err != nil {
+		respondInternalServerError(w, err)
+		return
+	}
+	err = db.DeleteTeamMember(r, token, h.databaseUrl)
 
+	if err != nil {
+		respondInternalServerError(w, err)
+		return
+	}
+
+	err = services.RemoveCollaborator(token, owner, repo, user)
 	if err != nil {
 		respondInternalServerError(w, err)
 		return
@@ -31,12 +44,25 @@ func (h *ProjectHandler) HandlerDeleteTeamMember(w http.ResponseWriter, r *http.
 }
 
 func (h *ProjectHandler) HandlerApproveApplication(w http.ResponseWriter, r *http.Request) {
-	err := db.ApproveApplication(r, h.databaseUrl)
+	token, err := getTokenFromClaims(r, h.databaseUrl)
+	if err != nil {
+		respondInternalServerError(w, err)
+		return
+	}
+	err = db.ApproveApplication(r, token, h.databaseUrl)
 
 	if err != nil {
 		respondInternalServerError(w, err)
 		return
 	}
+
+	err = services.AddCollaborator(token, owner, repo, user)
+
+	if err != nil {
+		respondInternalServerError(w, err)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 }
 
