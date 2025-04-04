@@ -54,6 +54,7 @@ func main() {
 			r.Use(middleware.UserOnly(cfg))
 			r.Post("/create", projectHandler.HandlerCreateProject)
 		})
+		r.Post("/update/teammember", projectHandler.HandlerUpdateTeamMemberRole)
 	})
 
 	r.Get("/profile/{login}", projectHandler.HandleGetUserByLogin)

@@ -12,17 +12,16 @@ import (
 )
 
 const checkAdmissionAndMember = `-- name: CheckAdmissionAndMember :one
-SELECT
-    CASE
-        WHEN EXISTS (SELECT 1 FROM "teammember" t WHERE t.uId = $1 AND t.projectId = $2)
-            AND EXISTS (SELECT 1 FROM "application" a WHERE a.uId = $1 AND a.projectId = $2)
-            THEN 3 -- Both
-        WHEN EXISTS (SELECT 1 FROM "teammember" t WHERE t.uId = $1 AND t.projectId = $2)
-            THEN 1 -- Member only
-        WHEN EXISTS (SELECT 1 FROM "application" a WHERE a.uId = $1 AND a.projectId = $2)
-            THEN 2 -- Applicant only
-        ELSE 0 -- Neither
-        END AS status_code
+SELECT CASE
+           WHEN EXISTS (SELECT 1 FROM "teammember" t WHERE t.uId = $1 AND t.projectId = $2)
+               AND EXISTS (SELECT 1 FROM "application" a WHERE a.uId = $1 AND a.projectId = $2)
+               THEN 3 -- Both
+           WHEN EXISTS (SELECT 1 FROM "teammember" t WHERE t.uId = $1 AND t.projectId = $2)
+               THEN 1 -- Member only
+           WHEN EXISTS (SELECT 1 FROM "application" a WHERE a.uId = $1 AND a.projectId = $2)
+               THEN 2 -- Applicant only
+           ELSE 0 -- Neither
+           END AS status_code
 `
 
 type CheckAdmissionAndMemberParams struct {
@@ -40,8 +39,7 @@ func (q *Queries) CheckAdmissionAndMember(ctx context.Context, arg CheckAdmissio
 const getCachedRepos = `-- name: GetCachedRepos :many
 SELECT repoid, uid, name, url, description, star, fork, last_updated, language, updated_at
 FROM repo
-WHERE
-    uid = $1
+WHERE uid = $1
   AND last_updated > NOW() - INTERVAL '1 day'
 ORDER BY star DESC, updated_at DESC NULLS LAST
     LIMIT 4
@@ -81,15 +79,10 @@ func (q *Queries) GetCachedRepos(ctx context.Context, uid pgtype.UUID) ([]Repo, 
 const getRepoByLogin = `-- name: GetRepoByLogin :many
 SELECT repoid, uid, name, url, description, star, fork, last_updated, language, updated_at
 FROM "repo"
-WHERE
-    uid in (
-        SELECT uid
-        FROM "user"
-        WHERE
-            "user".login = $1
-    )
-ORDER BY star DESC, updated_at DESC NULLS LAST
-    LIMIT 4
+WHERE uid in (SELECT uid
+              FROM "user"
+              WHERE "user".login = $1)
+ORDER BY star DESC, updated_at DESC NULLS LAST LIMIT 4
 `
 
 func (q *Queries) GetRepoByLogin(ctx context.Context, login string) ([]Repo, error) {
@@ -159,21 +152,19 @@ func (q *Queries) GetRepoByUid(ctx context.Context, uid pgtype.UUID) ([]Repo, er
 }
 
 const getUserInfoByLogin = `-- name: GetUserInfoByLogin :one
-SELECT
-    uid,
-    login,
-    name,
-    avatar,
-    location,
-    bio,
-    followers,
-    following,
-    public_repos,
-    total_private_repos,
-    html_url
+SELECT uid,
+       login,
+       name,
+       avatar,
+       location,
+       bio,
+       followers,
+       following,
+       public_repos,
+       total_private_repos,
+       html_url
 FROM "user"
-WHERE
-    "user".login = $1
+WHERE "user".login = $1
 `
 
 type GetUserInfoByLoginRow struct {
@@ -212,8 +203,7 @@ func (q *Queries) GetUserInfoByLogin(ctx context.Context, login string) (GetUser
 const getUserProfile = `-- name: GetUserProfile :one
 SELECT uid, login, name, avatar, location, token, bio, followers, following, public_repos, total_private_repos, html_url, last_updated
 FROM "user"
-WHERE
-    uid = $1
+WHERE uid = $1
   AND last_updated > NOW() - INTERVAL '1 day'
 `
 
@@ -239,7 +229,9 @@ func (q *Queries) GetUserProfile(ctx context.Context, uid pgtype.UUID) (User, er
 }
 
 const getUserToken = `-- name: GetUserToken :one
-SELECT token FROM "user" WHERE uId = $1
+SELECT token
+FROM "user"
+WHERE uId = $1
 `
 
 func (q *Queries) GetUserToken(ctx context.Context, uid pgtype.UUID) (string, error) {
@@ -432,19 +424,17 @@ func (q *Queries) SearchProjectByParameter(ctx context.Context, arg SearchProjec
 const updateUserProfile = `-- name: UpdateUserProfile :one
 
 UPDATE "user"
-SET
-    name = $2,
-    avatar = $3,
-    location = $4,
-    bio = $5,
-    followers = $6,
-    following = $7,
-    public_repos = $8,
+SET name                = $2,
+    avatar              = $3,
+    location            = $4,
+    bio                 = $5,
+    followers           = $6,
+    following           = $7,
+    public_repos        = $8,
     total_private_repos = $9,
-    html_url = $10,
-    last_updated = CURRENT_TIMESTAMP
-WHERE
-    uid = $1 RETURNING uid, login, name, avatar, location, token, bio, followers, following, public_repos, total_private_repos, html_url, last_updated
+    html_url            = $10,
+    last_updated        = CURRENT_TIMESTAMP
+WHERE uid = $1 RETURNING uid, login, name, avatar, location, token, bio, followers, following, public_repos, total_private_repos, html_url, last_updated
 `
 
 type UpdateUserProfileParams struct {
@@ -494,29 +484,24 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 }
 
 const upsertRepo = `-- name: UpsertRepo :one
-INSERT INTO
-    repo (
-    uid,
-    name,
-    url,
-    description,
-    star,
-    fork,
-    language,
-    updated_at,
-    last_updated
-)
-VALUES (
-           $1,
-           $2,
-           $3,
-           $4,
-           $5,
-           $6,
-           $7,
-           $8,
-           CURRENT_TIMESTAMP
-       ) ON CONFLICT (uid, name) DO
+INSERT INTO repo (uid,
+                  name,
+                  url,
+                  description,
+                  star,
+                  fork,
+                  language,
+                  updated_at,
+                  last_updated)
+VALUES ($1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        CURRENT_TIMESTAMP) ON CONFLICT (uid, name) DO
 UPDATE
     SET
         description = $4,
@@ -566,33 +551,28 @@ func (q *Queries) UpsertRepo(ctx context.Context, arg UpsertRepoParams) (Repo, e
 }
 
 const upsertUseAndReturnUidAndName = `-- name: UpsertUseAndReturnUidAndName :one
-INSERT INTO
-    "user" (
-    login,
-    name,
-    avatar,
-    location,
-    token,
-    bio,
-    followers,
-    following,
-    public_repos,
-    total_private_repos,
-    html_url
-)
-VALUES (
-           $1,
-           $2,
-           $3,
-           $4,
-           $5,
-           $6,
-           $7,
-           $8,
-           $9,
-           $10,
-           $11
-       ) ON CONFLICT (login) DO
+INSERT INTO "user" (login,
+                    name,
+                    avatar,
+                    location,
+                    token,
+                    bio,
+                    followers,
+                    following,
+                    public_repos,
+                    total_private_repos,
+                    html_url)
+VALUES ($1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        $9,
+        $10,
+        $11) ON CONFLICT (login) DO
 UPDATE
     SET
         token = $5,
@@ -658,51 +638,38 @@ func (q *Queries) deleteExistingProjectTag(ctx context.Context, projectid pgtype
 }
 
 const getProjectByProjectId = `-- name: getProjectByProjectId :one
-SELECT
-    p.projectid,
-    p.title,
-    p.description,
-    p.status,
-    (
-        SELECT json_agg (
-                       json_build_object (
-                               'licenseName', l.name, 'description', l.description, 'permission', l.permission, 'condition', l.condition, 'limitation', l.limitation
+SELECT p.projectid,
+       p.title,
+       p.description,
+       p.status,
+       (SELECT json_agg(
+                       json_build_object(
+                               'licenseName', l.name, 'description', l.description, 'permission', l.permission,
+                               'condition', l.condition, 'limitation', l.limitation
                        )
                )
         FROM license l
-        WHERE
-            l.licenseid = p.licenseid
-    ) AS license,
-    (
-        SELECT json_agg (
-                       json_build_object (
+        WHERE l.licenseid = p.licenseid)  AS license,
+       (SELECT json_agg(
+                       json_build_object(
                                'goalName', g.name, 'goalDescription', g.description
                        )
                )
         FROM goal g
-        WHERE
-            g.projectid = p.projectid
-    ) AS goal,
-    (
-        SELECT json_agg (
-                       json_build_object (
+        WHERE g.projectid = p.projectid)  AS goal,
+       (SELECT json_agg(
+                       json_build_object(
                                'roadmap', r.roadmap, 'description', r.description, 'status', r.status
                        )
                )
         FROM roadmap r
-        WHERE
-            r.projectid = p.projectid
-    ) AS roadmap,
-    (
-        SELECT ARRAY_AGG (t.name)
+        WHERE r.projectid = p.projectid)  AS roadmap,
+       (SELECT ARRAY_AGG(t.name)
         FROM tag t
                  JOIN "projectTag" pt ON pt.tagid = t.tagid
-        WHERE
-            pt.projectid = p.projectid
-    ) AS tag
+        WHERE pt.projectid = p.projectid) AS tag
 FROM project p
-WHERE
-    p.projectid = $1
+WHERE p.projectid = $1
 `
 
 type getProjectByProjectIdRow struct {
@@ -778,5 +745,23 @@ type updateProjectTitleDescriptionParams struct {
 
 func (q *Queries) updateProjectTitleDescription(ctx context.Context, arg updateProjectTitleDescriptionParams) error {
 	_, err := q.db.Exec(ctx, updateProjectTitleDescription, arg.Projectid, arg.Title, arg.Description)
+	return err
+}
+
+const updateTeamMemberRole = `-- name: updateTeamMemberRole :exec
+UPDATE teammember
+SET role = $3
+WHERE uid = $2
+  AND projectid = $1
+`
+
+type updateTeamMemberRoleParams struct {
+	Projectid pgtype.UUID
+	Uid       pgtype.UUID
+	Role      string
+}
+
+func (q *Queries) updateTeamMemberRole(ctx context.Context, arg updateTeamMemberRoleParams) error {
+	_, err := q.db.Exec(ctx, updateTeamMemberRole, arg.Projectid, arg.Uid, arg.Role)
 	return err
 }
