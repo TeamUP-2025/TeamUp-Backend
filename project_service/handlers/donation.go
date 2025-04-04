@@ -42,3 +42,14 @@ func (h *ProjectHandler) HandleGetTotalProjectDonationByProjectID(w http.Respons
 
 	w.Write(donationJson)
 }
+
+func (h *ProjectHandler) HandleCreateDonation(w http.ResponseWriter, r *http.Request) {
+	err := db.CreateDonation(r, h.databaseUrl)
+
+	if err != nil {
+		respondInternalServerError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
