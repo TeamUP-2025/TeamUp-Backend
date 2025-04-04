@@ -45,6 +45,10 @@ func main() {
 		r.Get("/{projectId}", projectHandler.HandleGetProjectByID)
 		r.Post("/{projectId}/join", projectHandler.HandlerCreateApplication)
 		r.Post("/update", projectHandler.HandlerUpdateProject)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.UserOnly(cfg))
+			r.Post("/create", projectHandler.HandlerCreateProject)
+		})
 	})
 
 	r.Get("/profile/{login}", projectHandler.HandleGetUserByLogin)

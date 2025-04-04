@@ -23,9 +23,10 @@ type Donation struct {
 }
 
 type Goal struct {
-	Projectid pgtype.UUID
-	Name      string
-	Goalid    pgtype.UUID
+	Projectid   pgtype.UUID
+	Name        string
+	Goalid      pgtype.UUID
+	Description *string
 }
 
 type License struct {

@@ -35,7 +35,7 @@ func UserOnly(cfg *config.Config) func(http.Handler) http.Handler {
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
-
+		
 			if claims, ok := token.Claims.(jwt.MapClaims); ok {
 				ctx := context.WithValue(r.Context(), "token", claims)
 				

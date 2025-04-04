@@ -230,6 +230,95 @@ func (q *Queries) InsertApplication(ctx context.Context, arg InsertApplicationPa
 	return err
 }
 
+const insertGoal = `-- name: InsertGoal :exec
+INSERT INTO goal (projectId, name, description)
+SELECT $1, 
+    UNNEST($2::varchar[]),
+    UNNEST($3::varchar[])
+`
+
+type InsertGoalParams struct {
+	Projectid pgtype.UUID
+	Column2   []string
+	Column3   []string
+}
+
+func (q *Queries) InsertGoal(ctx context.Context, arg InsertGoalParams) error {
+	_, err := q.db.Exec(ctx, insertGoal, arg.Projectid, arg.Column2, arg.Column3)
+	return err
+}
+
+const insertProject = `-- name: InsertProject :one
+WITH 
+repo_id AS (
+    SELECT repoId
+    FROM repo
+    WHERE repo.name = $3
+),
+project_insert AS (
+    INSERT INTO project (title, description, repoId, status, licenseId)
+    SELECT $1, $2, repo_id.repoId, $4, license.licenseId
+    FROM license, repo_id
+    WHERE license.name = $5
+    RETURNING projectid
+),
+teammember_insert AS (
+    INSERT INTO teammember (projectId, uId, role)
+    SELECT projectid, $6, 'Owner'
+    FROM project_insert
+)
+
+SELECT projectid FROM project_insert
+`
+
+type InsertProjectParams struct {
+	Title       string
+	Description string
+	Name        string
+	Status      *string
+	Name_2      string
+	Uid         pgtype.UUID
+}
+
+func (q *Queries) InsertProject(ctx context.Context, arg InsertProjectParams) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, insertProject,
+		arg.Title,
+		arg.Description,
+		arg.Name,
+		arg.Status,
+		arg.Name_2,
+		arg.Uid,
+	)
+	var projectid pgtype.UUID
+	err := row.Scan(&projectid)
+	return projectid, err
+}
+
+const insertRoadmap = `-- name: InsertRoadmap :exec
+INSERT INTO roadmap (projectid, roadmap, description, status)
+SELECT $1, 
+    UNNEST($2::varchar[]),
+    UNNEST($3::varchar[]),
+    UNNEST($4::varchar[])
+`
+
+type InsertRoadmapParams struct {
+	Projectid pgtype.UUID
+	Column2   []string
+	Column3   []string
+	Column4   []string
+}
+
+func (q *Queries) InsertRoadmap(ctx context.Context, arg InsertRoadmapParams) error {
+	_, err := q.db.Exec(ctx, insertRoadmap,
+		arg.Projectid,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+	)
+	return err
+}
+
 const searchProjectByParameter = `-- name: SearchProjectByParameter :many
 SELECT p.projectId                                    AS id,
        p.title,
@@ -442,7 +531,6 @@ func (q *Queries) UpsertRepo(ctx context.Context, arg UpsertRepoParams) (Repo, e
 }
 
 const upsertUseAndReturnUidAndName = `-- name: UpsertUseAndReturnUidAndName :one
-
 INSERT INTO
     "user" (
     login,
@@ -504,8 +592,6 @@ type UpsertUseAndReturnUidAndNameRow struct {
 	Name string
 }
 
-//- name: getAllUser :many
-// SELECT * FROM user;
 func (q *Queries) UpsertUseAndReturnUidAndName(ctx context.Context, arg UpsertUseAndReturnUidAndNameParams) (UpsertUseAndReturnUidAndNameRow, error) {
 	row := q.db.QueryRow(ctx, upsertUseAndReturnUidAndName,
 		arg.Login,
