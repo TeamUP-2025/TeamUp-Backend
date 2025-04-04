@@ -626,6 +626,22 @@ func (q *Queries) UpsertUseAndReturnUidAndName(ctx context.Context, arg UpsertUs
 	return i, err
 }
 
+const deleteApplication = `-- name: deleteApplication :exec
+DELETE
+FROM application
+WHERE uid = $2 AND projectid = $1
+`
+
+type deleteApplicationParams struct {
+	Projectid pgtype.UUID
+	Uid       pgtype.UUID
+}
+
+func (q *Queries) deleteApplication(ctx context.Context, arg deleteApplicationParams) error {
+	_, err := q.db.Exec(ctx, deleteApplication, arg.Projectid, arg.Uid)
+	return err
+}
+
 const deleteExistingProjectTag = `-- name: deleteExistingProjectTag :exec
 DELETE
 FROM "projectTag"
@@ -634,6 +650,22 @@ WHERE projectid = $1
 
 func (q *Queries) deleteExistingProjectTag(ctx context.Context, projectid pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, deleteExistingProjectTag, projectid)
+	return err
+}
+
+const deleteTeamMember = `-- name: deleteTeamMember :exec
+DELETE
+FROM teammember
+WHERE uid = $2 AND projectid = $1
+`
+
+type deleteTeamMemberParams struct {
+	Projectid pgtype.UUID
+	Uid       pgtype.UUID
+}
+
+func (q *Queries) deleteTeamMember(ctx context.Context, arg deleteTeamMemberParams) error {
+	_, err := q.db.Exec(ctx, deleteTeamMember, arg.Projectid, arg.Uid)
 	return err
 }
 
@@ -727,6 +759,21 @@ type insertNewTagsToProjectTagParams struct {
 
 func (q *Queries) insertNewTagsToProjectTag(ctx context.Context, arg insertNewTagsToProjectTagParams) error {
 	_, err := q.db.Exec(ctx, insertNewTagsToProjectTag, arg.Projectid, arg.Column2)
+	return err
+}
+
+const insertNewTeamMember = `-- name: insertNewTeamMember :exec
+INSERT INTO teammember (projectid, uid, role)
+VALUES ($1, $2, 'Contributor')
+`
+
+type insertNewTeamMemberParams struct {
+	Projectid pgtype.UUID
+	Uid       pgtype.UUID
+}
+
+func (q *Queries) insertNewTeamMember(ctx context.Context, arg insertNewTeamMemberParams) error {
+	_, err := q.db.Exec(ctx, insertNewTeamMember, arg.Projectid, arg.Uid)
 	return err
 }
 

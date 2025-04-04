@@ -55,6 +55,9 @@ func main() {
 			r.Post("/create", projectHandler.HandlerCreateProject)
 		})
 		r.Post("/update/teammember", projectHandler.HandlerUpdateTeamMemberRole)
+		r.Post("/delete/teammember", projectHandler.HandlerDeleteTeamMember)
+		r.Post("/approve/application", projectHandler.HandlerApproveApplication)
+		r.Post("/deny/application", projectHandler.HandlerDenyApplication)
 	})
 
 	r.Get("/profile/{login}", projectHandler.HandleGetUserByLogin)

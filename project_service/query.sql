@@ -37,28 +37,33 @@ SELECT $1,
 SELECT * FROM repo WHERE uid = $1;
 
 -- name: UpsertUseAndReturnUidAndName :one
-INSERT INTO "user" (login,
-                    name,
-                    avatar,
-                    location,
-                    token,
-                    bio,
-                    followers,
-                    following,
-                    public_repos,
-                    total_private_repos,
-                    html_url)
-VALUES ($1,
-        $2,
-        $3,
-        $4,
-        $5,
-        $6,
-        $7,
-        $8,
-        $9,
-        $10,
-        $11) ON CONFLICT (login) DO
+INSERT INTO
+    "user" (
+    login,
+    name,
+    avatar,
+    location,
+    token,
+    bio,
+    followers,
+    following,
+    public_repos,
+    total_private_repos,
+    html_url
+)
+VALUES (
+           $1,
+           $2,
+           $3,
+           $4,
+           $5,
+           $6,
+           $7,
+           $8,
+           $9,
+           $10,
+           $11
+       ) ON CONFLICT (login) DO
 UPDATE
     SET
         token = $5,
@@ -267,3 +272,17 @@ UPDATE teammember
 SET role = $3
 WHERE uid = $2
   AND projectid = $1;
+
+-- name: deleteApplication :exec
+DELETE
+FROM application
+WHERE uid = $2 AND projectid = $1;
+
+-- name: insertNewTeamMember :exec
+INSERT INTO teammember (projectid, uid, role)
+VALUES ($1, $2, 'Contributor');
+
+-- name: deleteTeamMember :exec
+DELETE
+FROM teammember
+WHERE uid = $2 AND projectid = $1;
