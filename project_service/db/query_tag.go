@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"net/http"
@@ -25,10 +24,6 @@ func UpdateProjectDetailWithTag(r *http.Request, databaseUrl string) error {
 		return err
 	}
 
-	fmt.Println("projectid", request.ProjectId)
-	fmt.Println("title", request.Title)
-	fmt.Println("description", request.Description)
-	fmt.Println("tags", request.Tags)
 
 	conn, err := pgx.Connect(ctx, databaseUrl)
 	if err != nil {
@@ -56,20 +51,18 @@ func UpdateProjectDetailWithTag(r *http.Request, databaseUrl string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Deleted Tags")
+
 
 	// Insert new tags that's not existing in Tag table
 	err = queries.insertNewTagIfNotExisting(ctx, request.Tags)
 	if err != nil {
 		return err
 	}
-	fmt.Println("Insert non existing tags")
 
 	// Insert new tags to projectTag Table
 	err = queries.insertNewTagsToProjectTag(ctx, insertNewTagsToProjectTagParams{Projectid: uuid, Column2: request.Tags})
 	if err != nil {
 		return err
 	}
-	fmt.Println("Insert new existing tags")
 	return err
 }

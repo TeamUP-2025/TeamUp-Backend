@@ -24,7 +24,7 @@ func NewRepoHandler(
 
 func (h *RepoHandler) HandleGetRepoByUid(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Println("HandleGetRepoByUid")
+	
 	ctx := r.Context()
 	claims := ctx.Value("token").(jwt.MapClaims)
 	uid := claims["uid"].(string)
@@ -32,18 +32,13 @@ func (h *RepoHandler) HandleGetRepoByUid(w http.ResponseWriter, r *http.Request)
 
 	repo, err := db.GetRepoByUidQuery(uid, h.databaseUrl)
 	if err != nil {
-		fmt.Println(err)
-
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
 	repoJson, err := json.Marshal(repo)
 	if err != nil {
-		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-
-	fmt.Println(repoJson)
 
 	w.Write(repoJson)
 }
