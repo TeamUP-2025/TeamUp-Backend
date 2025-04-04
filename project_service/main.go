@@ -48,6 +48,7 @@ func main() {
 	r.Route("/project", func(r chi.Router) {
 		r.Get("/", projectHandler.HandleSearchProject)
 		r.Get("/{projectId}", projectHandler.HandleGetProjectByID)
+		r.Get("/repo/{projectId}", repoHandler.HandleGetRepoByProjectID)
 		r.Post("/{projectId}/join", projectHandler.HandlerCreateApplication)
 		r.Post("/update", projectHandler.HandlerUpdateProject)
 		r.Group(func(r chi.Router) {
@@ -58,6 +59,10 @@ func main() {
 		r.Post("/delete/teammember", projectHandler.HandlerDeleteTeamMember)
 		r.Post("/approve/application", projectHandler.HandlerApproveApplication)
 		r.Post("/deny/application", projectHandler.HandlerDenyApplication)
+	})
+
+	r.Route("/repo", func(r chi.Router) {
+		r.Get("/{projectId}", repoHandler.HandleGetRepoByProjectID)
 	})
 
 	r.Get("/profile/{login}", projectHandler.HandleGetUserByLogin)
