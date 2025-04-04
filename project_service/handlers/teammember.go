@@ -6,6 +6,7 @@ import (
 
 	"github.com/TeamUP-2025/TeamUp-Backend/db"
 	"github.com/TeamUP-2025/TeamUp-Backend/services"
+	"fmt"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -27,16 +28,23 @@ func (h *ProjectHandler) HandlerDeleteTeamMember(w http.ResponseWriter, r *http.
 		respondInternalServerError(w, err)
 		return
 	}
-	err = db.DeleteTeamMember(r, token, h.databaseUrl)
-
+	request, err := db.DeleteTeamMember(r, h.databaseUrl)
 	if err != nil {
 		respondInternalServerError(w, err)
 		return
 	}
 
-	err = services.RemoveCollaborator(token, owner, repo, user)
+	reponse, err := db.GetRepoOwnerLoginAndRepoNameFromProjectIDAndCollaborator(request.ProjectId, request.UserId, h.databaseUrl)
 	if err != nil {
 		respondInternalServerError(w, err)
+		return
+	}
+
+	fmt.Println(reponse.Owner, reponse.Reponame, request.UserId, token)
+	err = services.RemoveCollaborator(token, reponse.Owner, reponse.Reponame, reponse.Collaborator)
+	if err != nil {
+		respondInternalServerError(w, err)
+		fmt.Println("error in remove collaborator",err)
 		return
 	}
 
@@ -49,14 +57,26 @@ func (h *ProjectHandler) HandlerApproveApplication(w http.ResponseWriter, r *htt
 		respondInternalServerError(w, err)
 		return
 	}
-	err = db.ApproveApplication(r, token, h.databaseUrl)
+	request, err := db.ApproveApplication(r, h.databaseUrl)
 
 	if err != nil {
 		respondInternalServerError(w, err)
+		fmt.Println("error in approve",err)
 		return
 	}
 
-	err = services.AddCollaborator(token, owner, repo, user)
+
+	reponse, err := db.GetRepoOwnerLoginAndRepoNameFromProjectIDAndCollaborator(request.ProjectId, request.UserId, h.databaseUrl)
+
+	if err != nil {
+		respondInternalServerError(w, err)
+		fmt.Println("error in get GetRepoOwnerLoginAndRepoNameFromProjectIDAndCollaborator",err)
+		return
+	}
+
+	fmt.Println(reponse.Owner, reponse.Reponame, reponse.Collaborator, token)
+
+	err = services.AddCollaborator(token, reponse.Owner, reponse.Reponame, reponse.Collaborator)
 
 	if err != nil {
 		respondInternalServerError(w, err)

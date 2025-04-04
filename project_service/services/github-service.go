@@ -39,7 +39,7 @@ func GetUserProfile(token string) (*github.User, *github.Response, error) {
 
 func AddCollaborator(token string, owner string, repo string, user string) error {
 	client := github.NewClient(nil).WithAuthToken(token)
-	_, _,err := client.Repositories.AddCollaborator(context.Background(), owner, repo, user, nil)
+	_, _, err := client.Repositories.AddCollaborator(context.Background(), owner, repo, user, nil)
 	return err
 }
 

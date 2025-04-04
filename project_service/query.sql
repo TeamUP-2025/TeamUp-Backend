@@ -329,15 +329,27 @@ WHERE projectid = $1 AND roadmap = $2;
 INSERT INTO roadmap (projectid, roadmap, description, status)
 VALUES ($1, $2, $3, 'Planned');
 
--- name: getRepoOwnerLoginAndRepoName :one
-with collaborator as (
-
-    
+-- name: getRepoOwnerLoginAndRepoNameFromProjectIDAndCollaborator :one
+WITH collaborator AS (
+    SELECT uu.login AS collab
+    FROM "user" uu
+    WHERE uu.uid = $2
+    LIMIT 1
 )
-SELECT "user".login, repo.name
-FROM repo
-         JOIN "user" ON repo.uId = "user".uid
-WHERE repo.repoid = $1;
+SELECT
+    "user".login AS owner,
+    repo.name AS repoName,
+    collaborator.collab AS collaborator
+FROM
+    repo
+JOIN
+    "user" ON repo.uId = "user".uid
+JOIN
+    "project" ON repo.repoid = "project".repoid
+CROSS JOIN -- Add the CROSS JOIN here
+    collaborator
+WHERE
+    "project".projectid = $1;
 
 -- name: getProjectDonationByProjectID :many
 SELECT donation.created_at, donation.amount,
