@@ -286,3 +286,10 @@ VALUES ($1, $2, 'Contributor');
 DELETE
 FROM teammember
 WHERE uid = $2 AND projectid = $1;
+
+-- name: getProjectRepoByProjectID
+SELECT repo.*
+FROM repo
+         JOIN project ON repo.repoid = project.repoid
+WHERE project.projectid = $1;
+
