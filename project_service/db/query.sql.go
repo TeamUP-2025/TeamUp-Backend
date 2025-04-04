@@ -676,6 +676,22 @@ func (q *Queries) UpsertUseAndReturnUidAndName(ctx context.Context, arg UpsertUs
 	return i, err
 }
 
+const addRoadmap = `-- name: addRoadmap :exec
+INSERT INTO roadmap (projectid, roadmap, description, status)
+VALUES ($1, $2, $3, 'Planned')
+`
+
+type addRoadmapParams struct {
+	Projectid   pgtype.UUID
+	Roadmap     string
+	Description string
+}
+
+func (q *Queries) addRoadmap(ctx context.Context, arg addRoadmapParams) error {
+	_, err := q.db.Exec(ctx, addRoadmap, arg.Projectid, arg.Roadmap, arg.Description)
+	return err
+}
+
 const deleteApplication = `-- name: deleteApplication :exec
 DELETE
 FROM application
@@ -962,6 +978,23 @@ type updateProjectTitleDescriptionParams struct {
 
 func (q *Queries) updateProjectTitleDescription(ctx context.Context, arg updateProjectTitleDescriptionParams) error {
 	_, err := q.db.Exec(ctx, updateProjectTitleDescription, arg.Projectid, arg.Title, arg.Description)
+	return err
+}
+
+const updateRoadmapStatus = `-- name: updateRoadmapStatus :exec
+UPDATE roadmap
+SET status = $3
+WHERE projectid = $1 AND roadmap = $2
+`
+
+type updateRoadmapStatusParams struct {
+	Projectid pgtype.UUID
+	Roadmap   string
+	Status    string
+}
+
+func (q *Queries) updateRoadmapStatus(ctx context.Context, arg updateRoadmapStatusParams) error {
+	_, err := q.db.Exec(ctx, updateRoadmapStatus, arg.Projectid, arg.Roadmap, arg.Status)
 	return err
 }
 

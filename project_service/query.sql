@@ -319,3 +319,12 @@ SELECT "user".name, "user".location, "user".avatar, teammember.role, "user".logi
 FROM teammember
          JOIN "user" ON teammember.uid = "user".uid
 WHERE projectid = $1;
+
+-- name: updateRoadmapStatus :exec
+UPDATE roadmap
+SET status = $3
+WHERE projectid = $1 AND roadmap = $2;
+
+-- name: addRoadmap :exec
+INSERT INTO roadmap (projectid, roadmap, description, status)
+VALUES ($1, $2, $3, 'Planned');

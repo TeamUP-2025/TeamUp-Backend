@@ -17,6 +17,7 @@ func main() {
 		cfg.GithubClientSecret,
 		cfg.JWTSecret,
 		cfg.DatabaseURL,
+		cfg.FrontURL,
 	)
 
 	githubHandler := handlers.NewGithubHandler(
@@ -64,6 +65,9 @@ func main() {
 		r.Post("/delete/teammember", projectHandler.HandlerDeleteTeamMember)
 		r.Post("/application/approve", projectHandler.HandlerApproveApplication)
 		r.Post("/application/deny", projectHandler.HandlerDenyApplication)
+
+		r.Post("/roadmap/update", projectHandler.HandleUpdateRoadmapStatus)
+		r.Post("/roadmap/add", projectHandler.HandleAddRoadmapMilestone)
 	})
 
 	r.Route("/repo", func(r chi.Router) {
