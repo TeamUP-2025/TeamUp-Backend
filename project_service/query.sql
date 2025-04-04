@@ -312,3 +312,23 @@ FROM application
          JOIN "tag" ON "tag".tagid = "userTag".tagid
 WHERE application.projectid = $1
 GROUP BY application.appid, "user".uid;
+
+-- name: getProjectDonationByProjectID :many
+SELECT donation.created_at, donation.amount,
+       "user".name, "user".avatar
+FROM donation
+         JOIN "user" ON "user".uid = donation.uid
+         JOIN project ON project.projectid = donation.projectid
+WHERE donation.projectid = $1;
+
+-- name: getTotalProjectDonationByProjectID :one
+SELECT SUM(donation.amount)
+FROM donation
+         JOIN "user" ON "user".uid = donation.uid
+         JOIN project ON project.projectid = donation.projectid
+WHERE donation.projectid = $1
+GROUP BY donation.projectid;
+
+-- name: insertNewDonation :exec
+INSERT INTO donation (uid, projectid, amount)
+VALUES ($1, $2, $3);
