@@ -259,3 +259,17 @@ INSERT INTO "projectTag" (projectid, tagid)
 SELECT $1, t.tagid
 FROM "tag" t
 WHERE t.name = ANY ($2::varchar[]);
+
+-- name: deleteApplication: exec
+DELETE
+FROM application
+WHERE uid = $2 AND projectid = $1;
+
+-- name: insertNewTeamMember :exec
+INSERT INTO teammember (projectid, uid, role)
+VALUES ($1, $2, 'Contributor');
+
+-- name: deleteTeamMember :exec
+DELETE
+FROM teammember
+WHERE uid = $2 AND projectid = $1;
