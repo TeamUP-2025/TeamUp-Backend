@@ -45,6 +45,7 @@ func main() {
 		r.Get("/{projectId}", projectHandler.HandleGetProjectByID)
 		r.Post("/{projectId}/join", projectHandler.HandlerCreateApplication)
 		r.Post("/update", projectHandler.HandlerUpdateProject)
+		r.Post("/update/teammember", projectHandler.HandlerUpdateTeamMemberRole)
 	})
 
 	r.Get("/profile/{login}", projectHandler.HandleGetUserByLogin)
