@@ -18,6 +18,7 @@ func main() {
 		cfg.JWTSecret,
 		cfg.DatabaseURL,
 		cfg.FrontURL,
+		cfg.DomainCookie,
 	)
 
 	githubHandler := handlers.NewGithubHandler(

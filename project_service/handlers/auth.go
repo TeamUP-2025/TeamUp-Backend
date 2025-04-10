@@ -44,6 +44,7 @@ func NewAuthHandler(clientID,
 		jwtSecret:    []byte(jwtSecret),
 		databaseUrl: databaseUrl,
 		frontUrl: frontUrl,
+		domainCookie: domainCookie,
 	}
 }
 
