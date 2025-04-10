@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -62,6 +63,7 @@ func (h *AuthHandler) HandleGithubCallback(w http.ResponseWriter, r *http.Reques
 
 	token, err := h.config.Exchange(r.Context(), code)
 	if err != nil {
+		fmt.Println("Failed to exchange token", err)
 		http.Error(w, "Failed to exchange token", http.StatusInternalServerError)
 		return
 	}
@@ -69,7 +71,10 @@ func (h *AuthHandler) HandleGithubCallback(w http.ResponseWriter, r *http.Reques
 	acessToken := token.AccessToken
 	user, _, err := services.GetUserProfile(acessToken)
 
+	fmt.Println(user)
+
 	if err != nil {
+		fmt.Println("Failed to get user profile", err)
 		http.Error(w, "Failed to get user profile", http.StatusInternalServerError)
 		return
 	}
@@ -94,11 +99,21 @@ func (h *AuthHandler) HandleGithubCallback(w http.ResponseWriter, r *http.Reques
         totalPrivateRepos = int32(*user.TotalPrivateRepos)
     }
 
+	name := ""
+	if user.Name != nil {
+		name = *user.Name
+	}
+
+	lacation := ""
+	if user.Location != nil {
+		lacation = *user.Location
+	}
+
 	userData := db.UpsertUseAndReturnUidAndNameParams{
         Login:            *user.Login,
-        Name:             *user.Name,
+        Name:             name,
         Avatar:           user.AvatarURL,
-        Location:         user.Location,
+        Location:         &lacation,
         Token:            acessToken,
         Bio:             user.Bio,
         Followers:       &followers,
@@ -111,14 +126,15 @@ func (h *AuthHandler) HandleGithubCallback(w http.ResponseWriter, r *http.Reques
 	data, err := db.UpsertUserQuery(userData, h.databaseUrl)
 
 	if err != nil{
+		fmt.Println("Failed to upsert user data", err)
 		http.Error(w, "Failed to upsert user data", http.StatusInternalServerError)
 		return
 	};
 
 	// Create JWT token
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"name":         user.Name,
-		"login": 		user.Login,
+		"name":         name,
+		"login": 		*user.Login,
 		"uid": 			data.Uid,
 		"exp":          time.Now().Add(time.Hour * 24).Unix(),
 	})
@@ -126,6 +142,7 @@ func (h *AuthHandler) HandleGithubCallback(w http.ResponseWriter, r *http.Reques
 	tokenString, err := jwtToken.SignedString(h.jwtSecret)
 
 	if err != nil {
+		fmt.Println("Failed to create JWT token", err)
 		http.Error(w, "Failed to create JWT token", http.StatusInternalServerError)
 		return
 	}
