@@ -21,6 +21,7 @@ func LoadConfig() *Config {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+
 	return &Config{
 		GithubClientID:     os.Getenv("GithubClientID"),
 		GithubClientSecret: os.Getenv("GithubClientSecret"),

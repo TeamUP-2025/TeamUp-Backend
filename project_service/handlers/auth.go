@@ -134,6 +134,7 @@ func (h *AuthHandler) HandleGithubCallback(w http.ResponseWriter, r *http.Reques
 		HttpOnly: true,
 		Secure:   true, // ensure HTTPS in production // does not have cert
 		SameSite: http.SameSiteNoneMode,
+		Domain:   "reoreggie.dev",
 		Expires:  time.Now().Add(time.Hour * 24), // same duration as JWT expiration
 	})
 
