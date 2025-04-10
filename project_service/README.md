@@ -30,6 +30,7 @@ A Go-based service for open source collaboration with authentication and project
    - `FRONT_URL`: Frontend URL for CORS
    - `GithubClientID` & `GithubClientSecret`: For OAuth
    - `JWT_SECRET`: For session tokens
+   - `DOMAIN_COOKIE`: For setting root domain for cookie
 
 3. **Database migrations:**
    ```bash

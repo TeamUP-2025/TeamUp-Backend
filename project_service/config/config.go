@@ -13,6 +13,7 @@ type Config struct {
 	JWTSecret          string
 	DatabaseURL        string
 	FrontURL           string
+	DomainCookie       string
 }
 
 func LoadConfig() *Config {
@@ -28,5 +29,6 @@ func LoadConfig() *Config {
 		JWTSecret:          os.Getenv("JWT_SECRET"),
 		DatabaseURL:        os.Getenv("DATABASE_URL"),
 		FrontURL:           os.Getenv("FRONT_URL"),
+		DomainCookie:       os.Getenv("DOMAIN_COOKIE"),
 	}
 }

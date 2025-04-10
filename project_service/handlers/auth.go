@@ -18,6 +18,7 @@ type AuthHandler struct {
 	githubSerice *services.GithubService
 	databaseUrl string
 	frontUrl string
+	domainCookie string
 }
 
 func NewAuthHandler(clientID, 
@@ -25,6 +26,7 @@ func NewAuthHandler(clientID,
 	jwtSecret string, 
 	databaseUrl string,
 	frontUrl string,
+	domainCookie string,
 	) *AuthHandler {
 	config := &oauth2.Config{
 		ClientID:     clientID,
@@ -134,7 +136,7 @@ func (h *AuthHandler) HandleGithubCallback(w http.ResponseWriter, r *http.Reques
 		HttpOnly: true,
 		Secure:   true, // ensure HTTPS in production // does not have cert
 		SameSite: http.SameSiteNoneMode,
-		Domain:   "reoreggie.dev",
+		Domain:   h.domainCookie,
 		Expires:  time.Now().Add(time.Hour * 24), // same duration as JWT expiration
 	})
 
