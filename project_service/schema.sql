@@ -164,3 +164,26 @@ ADD COLUMN description VARCHAR;
 ALTER TABLE "donation"
 ADD COLUMN amount NUMERIC NOT NULL DEFAULT 0;
 -- +goose StatementEnd
+
+CREATE TABLE "ChatMessage" (
+    "messageId" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "projectId" UUID NOT NULL,
+    -- Changed userId to store the user's login (VARCHAR) instead of uid (UUID)
+    "login" VARCHAR NOT NULL,
+    "content" TEXT NOT NULL,
+    "createdAt" TIMESTAMPTZ(6) NOT NULL DEFAULT NOW(),
+
+    -- Foreign key constraint for the project (room) - remains the same
+    CONSTRAINT fk_chatmessage_project
+        FOREIGN KEY("projectId")
+        REFERENCES "project"("projectid")
+        ON DELETE CASCADE
+        ON UPDATE NO ACTION,
+
+    -- Foreign key constraint for the user (sender) - now references user.login
+    CONSTRAINT fk_chatmessage_user_login
+        FOREIGN KEY("login")
+        REFERENCES "user"("login") -- References the 'login' column in the 'user' table
+        ON DELETE RESTRICT -- Prevent deleting a user if they have messages
+        ON UPDATE NO ACTION -- Or consider ON UPDATE CASCADE if user logins can change and you want messages updated
+);
